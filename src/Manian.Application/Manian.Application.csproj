@@ -1,0 +1,45 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <NoWarn>8618</NoWarn>
+    <RootNamespace>Manian.Application</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Manian.Domain/Manian.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Mapster" Version="7.4.0" />
+    <PackageReference Include="Mapster.DependencyInjection" Version="1.0.1" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.2" />
+    <PackageReference Include="Po.Media" Version="1.0.15" />
+    <PackageReference Include="Po.Mediator" Version="1.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Commands/Carts/" />
+    <Folder Include="Commands/Orders/" />
+    <Folder Include="Commands/Products/" />
+    <Folder Include="Commands/Promotions/" />
+    <Folder Include="Commands/Users/" />
+    <Folder Include="Commands/Warehouses/" />
+    <Folder Include="Extensions/" />
+    <Folder Include="Mappers/" />
+    <Folder Include="Mappers/Memberships/" />
+    <Folder Include="Models/Memberships/" />
+    <Folder Include="Models/Memberships/Base/" />
+    <Folder Include="Queries/Assets/" />
+    <Folder Include="Queries/Carts/" />
+    <Folder Include="Queries/Memberships/" />
+    <Folder Include="Queries/Orders/" />
+    <Folder Include="Queries/Promotions/" />
+    <Folder Include="Queries/Users/" />
+    <Folder Include="Queries/Warehouses/" />
+    <Folder Include="Services/" />
+  </ItemGroup>
+
+</Project>

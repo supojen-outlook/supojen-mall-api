@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <NoWarn>8618</NoWarn>
+    <RootNamespace>Manian.Domain</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Po.Api.Response" Version="1.0.10" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Entities/Assets/" />
+    <Folder Include="Entities/Carts/" />
+    <Folder Include="Entities/Memberships/" />
+    <Folder Include="Entities/Orders/" />
+    <Folder Include="Entities/Promotions/" />
+    <Folder Include="Entities/Warehouses/" />
+    <Folder Include="Repositories/Assets/" />
+    <Folder Include="Repositories/Carts/" />
+    <Folder Include="Repositories/Products/" />
+    <Folder Include="Repositories/Promotions/" />
+    <Folder Include="Repositories/Warehouses/" />
+    <Folder Include="Services/" />
+    <Folder Include="ValueObjects/" />
+    <Folder Include="ValueObjects/Order/" />
+  </ItemGroup>
+
+</Project>
