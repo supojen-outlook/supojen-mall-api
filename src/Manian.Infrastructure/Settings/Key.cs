@@ -32,10 +32,9 @@ public class Key
             // RSA.Create() 會根據作業系統決定最佳的實作（Windows 用 CAPI/CNG，Linux 用 OpenSSL）
             var prKey = RSA.Create();
             
-            // 從檔案讀取所有位元組，這些位元組就是 PKCS#8 格式的私鑰資料
-            // 然後用 ImportRSAPrivateKey 將原始位元組資料匯入 RSA 物件
-            // out _ 是 C# 的 discard，表示我們不在乎匯入時讀取了多少位元組
-            prKey.ImportRSAPrivateKey(File.ReadAllBytes(rsaFile), out _);
+            // 從檔案讀取 PKCS#8 格式的私鑰（DER 二進位格式）
+            // keygen-tool 產生的是 PKCS#8 DER 格式，需用 ImportPkcs8PrivateKey 載入
+            prKey.ImportPkcs8PrivateKey(File.ReadAllBytes(rsaFile), out _);
         
             // 建立另一個 RSA 物件來存放公鑰
             var puKey = RSA.Create();
