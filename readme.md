@@ -10,7 +10,8 @@
 - [功能模組](#功能模組)
 - [檔案結構](#檔案結構)
 - [環境需求](#環境需求)
-- [安裝與部署](#安裝與部署)
+- [本地開發](#本地開發)
+- [部署](#部署)
 - [使用指南](#使用指南)
 - [API 文件](#api-文件)
 - [開發指南](#開發指南)
@@ -106,38 +107,22 @@ Manian/
 ├── 📄 README.md                    # 專案說明文件
 ├── 📄 Manian.sln                   # Visual Studio 解決方案
 ├── 📄 Dockerfile                   # Docker 映像檔建置腳本
-├── 📄 docker-compose.yaml          # Docker Compose 配置
-├── 📄 build.sh                     # 本地建置腳本
-├── 📄 deploy.sh                    # 部署腳本
-├── 📄 undeploy.sh                  # 解除部署腳本
-├── 📄 Makefile                     # 建置任務自動化
-├── 📄 keygen-tool                  # 金鑰生成工具
 ├── 📄 .gitignore                   # Git 忽略檔案配置
+├── 📄 .env                         # 環境變數（敏感設定，不進版本控制）
+├── � .github/                     # GitHub 配置
+│   └── � workflows/
+│       └── 📄 docker-publish.yml   # GitHub Actions CI/CD
 ├── 📁 .vscode/                     # VS Code 配置
 ├── 📁 src/                         # 原始碼目錄
 │   ├── 📁 Manian.Domain/           # 領域層
 │   │   ├── 📄 Manian.Domain.csproj
 │   │   ├── 📁 Entities/            # 實體類別
-│   │   │   ├── 📁 Assets/
-│   │   │   ├── 📁 Carts/
-│   │   │   ├── 📁 Memberships/
-│   │   │   ├── 📁 Orders/
-│   │   │   ├── 📁 Products/
-│   │   │   ├── 📁 Promotions/
-│   │   │   └── 📁 Warehouses/
 │   │   ├── 📁 Repositories/        # 倉儲接口
 │   │   ├── 📁 Services/            # 領域服務
 │   │   └── 📁 ValueObjects/        # 值物件
 │   ├── 📁 Manian.Application/      # 應用層
 │   │   ├── 📄 Manian.Application.csproj
 │   │   ├── 📁 Commands/            # 命令處理
-│   │   │   ├── 📁 Assets/
-│   │   │   ├── 📁 Carts/
-│   │   │   ├── 📁 Memberships/
-│   │   │   ├── 📁 Orders/
-│   │   │   ├── 📁 Products/
-│   │   │   ├── 📁 Promotions/
-│   │   │   └── 📁 Warehouses/
 │   │   ├── 📁 Queries/             # 查詢處理
 │   │   ├── 📁 Models/              # 資料傳輸物件
 │   │   ├── 📁 Mappers/             # 物件映射
@@ -152,59 +137,15 @@ Manian/
 │       ├── 📄 Manian.Presentation.csproj
 │       ├── 📄 Program.cs           # 應用程式入口點
 │       ├── 📁 Endpoints/           # API 端點定義
-│       │   ├── 📁 Memberships/
-│       │   ├── 📁 Orders/
-│       │   ├── 📁 Products/
-│       │   ├── 📁 Promotions/
-│       │   └── 📁 Warehouses/
 │       ├── 📁 Extensions/          # 擴展方法
 │       └── 📁 Middleware/          # 中間件
-├── 📁 sql/                         # 資料庫腳本
-│   ├── 📁 00-asset/                # 資產管理相關表
-│   │   ├── 📄 01-asset.sql
-│   ├── 📁 01-membership/           # 會員管理相關表
-│   │   ├── 📄 01-role.sql
-│   │   ├── 📄 02-user.sql
-│   │   ├── 📄 03-user_role.sql
-│   │   ├── 📄 04-identity.sql
-│   │   ├── 📄 05-point_account.sql
-│   │   ├── 📄 06-point_transaction.sql
-│   │   └── 📄 07-maintenance.sql
-│   ├── 📁 02-productcenter/        # 商品中心相關表
-│   │   ├── 📄 01-unit_of_meaure.sql
-│   │   ├── 📄 02-category.sql
-│   │   ├── 📄 03-brand.sql
-│   │   ├── 📄 04-attribute_key.sql
-│   │   ├── 📄 05-attribute_value.sql
-│   │   ├── 📄 06-category_attributes.sql
-│   │   ├── 📄 07-product.sql
-│   │   ├── 📄 08-sku.sql
-│   │   ├── 📄 09-product_attributes.sql
-│   │   ├── 📄 10-sku_attributes.sql
-│   │   └── 📄 11-tag.sql
-│   ├── 📁 03-warehouse/            # 倉庫管理相關表
-│   │   ├── 📄 01-location.sql
-│   │   ├── 📄 02-inventory.sql
-│   │   ├── 📄 03-inventory_transaction.sql
-│   │   └── 📄 04-putaway_profile.sql
-│   ├── 📁 04-order/                # 訂單系統相關表
-│   │   ├── 📄 00-shipping_rule.sql
-│   │   ├── 📄 01-order.sql
-│   │   ├── � 02-order_item.sql
-│   │   ├── 📄 03-shipment.sql
-│   │   ├── 📄 04-payment.sql
-│   │   ├── 📄 05-pick_item.sql
-│   │   ├── 📄 06-return.sql
-│   │   └── 📄 README.md
-│   └── 📁 05-promotion/            # 促銷活動相關表
-│       ├── 📄 01-promotion.sql
-│       ├── 📄 02-promotion_rule.sql
-│       ├── 📄 03-promotion_scope.sql
-│       └── 📄 04-promotion_usage.sql
-└── 📁 deploy/                      # 部署相關檔案（建置後產生）
-    ├── 📁 publish/                 # 發佈檔案
-    ├── 📁 keys/                    # 加密金鑰
-    └── 📄 README.md                # 部署說明
+└── 📁 sql/                         # 資料庫腳本
+    ├── 📁 00-asset/                # 資產管理相關表
+    ├──  01-membership/           # 會員管理相關表
+    ├── 📁 02-productcenter/        # 商品中心相關表
+    ├──  03-warehouse/            # 倉庫管理相關表
+    ├──  04-order/                # 訂單系統相關表
+    └──  05-promotion/            # 促銷活動相關表
 ```
 
 ## 🔧 環境需求
@@ -221,9 +162,7 @@ Manian/
 - **Nginx** - 反向代理 (可選)
 - **SSL 憑證** - HTTPS 支援
 
-## 🚀 安裝與部署
-
-### 本地開發環境設置
+## � 本地開發
 
 1. **克隆專案**
 ```bash
@@ -245,40 +184,8 @@ psql -U postgres -d manian_db -f sql/01-membership/01-role.sql
 
 4. **設定配置檔案**
 ```bash
-# 複製並編輯配置檔案
-cp src/Manian.Presentation/appsettings.example.json src/Manian.Presentation/appsettings.json
-# 編輯資料庫連線字串等設定
-```
-
-**appsettings.json 配置範例：**
-```json
-{
-  "ConnectionStrings": {
-    "Main": "Host=localhost;Database=manian_db;Username=your_username;Password=your_password;Port=5432"
-  },
-  "EmailSettings": {
-    "Server": "smtp.gmail.com",
-    "Port": 587,
-    "Email": "noreply@yourapp.com",
-    "Password": "your-app-password",
-    "SenderName": "Manian系統通知",
-    "UseSsl": true
-  },
-  "S3Settings": {
-    "AccessKey": "your-access-key",
-    "SecretKey": "your-secret-key",
-    "BucketName": "your-bucket-name",
-    "Region": "ap-northeast-1",
-    "Endpoint": "https://s3.amazonaws.com"
-  },
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information",
-      "Microsoft.AspNetCore": "Warning"
-    }
-  },
-  "AllowedHosts": "*"
-}
+# 編輯 appsettings.Development.json
+code src/Manian.Presentation/appsettings.Development.json
 ```
 
 5. **執行專案**
@@ -286,95 +193,173 @@ cp src/Manian.Presentation/appsettings.example.json src/Manian.Presentation/apps
 dotnet run --project src/Manian.Presentation
 ```
 
-### 生產環境部署
+## 🚀 部署
 
-#### 推薦部署流程
+### CI/CD 流程（GitHub Actions）
 
-**步驟 1：本地建置部署包**
-```bash
-# 在本地機器上執行
-chmod +x build.sh
-./build.sh
+本專案使用 GitHub Actions 自動建置並發佈 Docker 映像檔到 GitHub Container Registry (ghcr.io)。
+
+**觸發條件：** 推送標籤 `v*`（例如 `v1.0.0`）
+
+**發佈流程：**
 ```
-這會生成 `manian-deploy.tar.gz` 部署包。
-
-**步驟 2：上傳到伺服器**
-```bash
-# 上傳部署包到伺服器
-scp manian-deploy.tar.gz user@your-server:/app/
-```
-
-**步驟 3：伺服器端部署**
-```bash
-# SSH 連接到伺服器並執行部署
-ssh user@your-server
-cd /app
-tar -xzf manian-deploy.tar.gz
-make deploy
+推送標籤 v1.0.0
+    ↓
+GitHub Actions 自動觸發
+    ↓
+dotnet publish → Docker build → push to ghcr.io
+    ↓
+映像檔: ghcr.io/{username}/mall-api:v1.0.0
 ```
 
-#### 其他部署方法
-
-##### 方法一：直接使用腳本（不推薦）
+**發佈新版本：**
 ```bash
-# 在伺服器上直接執行
-./deploy.sh
+# 1. 更新版本號標籤
+git tag v1.0.0
+
+# 2. 推送標籤到遠端（觸發 CI/CD）
+git push origin v1.0.0
+
+# 3. GitHub Actions 自動建置並發佈映像檔
+# 可在 Actions 頁面查看進度
 ```
 
-##### 方法二：使用 Docker
-```bash
-# 建置映像檔
-docker build -t manian:latest .
+### 伺服器部署
 
-# 執行容器
-docker-compose up -d
+**1. 準備環境**
+
+在伺服器上建立目錄結構：
+```bash
+mkdir -p ~/mall-api
+cd ~/mall-api
 ```
 
-#### 伺服器日常管理
+建立 `docker-compose.yml`：
+```yaml
+services:
+  mall-api:
+    image: ghcr.io/supojen/mall-api:v1.0.0  # 替換為最新版本
+    container_name: mall-api
+    restart: unless-stopped
+    ports:
+      - "7175:7175"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:7175
+      - TZ=Asia/Taipei
+      - ConnectionStrings__Main=${MAIN_CONNECTION_STRING}
+      - EmailSettings__SenderName=${EMAIL_SENDER_NAME}
+      - EmailSettings__Email=${EMAIL_ACCOUNT}
+      - EmailSettings__Password=${EMAIL_PASSWORD}
+      - S3__AccessKey=${S3_ACCESS_KEY}
+      - S3__Secret=${S3_SECRET}
+      - S3__Url=${S3_URL}
+      - S3__CDN=${S3_CDN}
+    volumes:
+      - ./keys/id_aes:/app/id_aes
+      - ./keys/id_rsa.v1:/app/id_rsa.v1
+      - ./keys/id_rsa.v2:/app/id_rsa.v2
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+```
 
-部署完成後，使用 Makefile 進行日常管理：
+建立 `.env` 檔案（敏感設定）：
+```bash
+# 資料庫連線
+MAIN_CONNECTION_STRING="Host=localhost;Database=mall_db;Username=...;Password=..."
+
+# Email 設定
+EMAIL_SENDER_NAME="Mall API"
+EMAIL_ACCOUNT="noreply@example.com"
+EMAIL_PASSWORD="your-password"
+
+# S3 設定
+S3_ACCESS_KEY="your-access-key"
+S3_SECRET="your-secret"
+S3_URL="https://s3.amazonaws.com"
+S3_CDN="https://cdn.example.com"
+```
+
+**2. 生成加密金鑰**
+```bash
+mkdir -p keys
+
+# 使用 .NET 程式碼生成金鑰，或手動建立
+# AES 金鑰（32 bytes）
+openssl rand -out keys/id_aes 32
+
+# RSA 金鑰對（需要 PKCS#8 DER 格式）
+openssl genrsa -out /tmp/rsa1.pem 2048
+openssl pkcs8 -topk8 -inform PEM -outform DER -in /tmp/rsa1.pem -out keys/id_rsa.v1 -nocrypt
+
+openssl genrsa -out /tmp/rsa2.pem 2048
+openssl pkcs8 -topk8 -inform PEM -outform DER -in /tmp/rsa2.pem -out keys/id_rsa.v2 -nocrypt
+```
+
+**3. 啟動服務**
+```bash
+docker compose up -d
+```
+
+**4. 設定 Nginx（可選）**
+```bash
+# 編輯 Nginx 設定檔
+sudo nano /etc/nginx/conf.d/api.example.com.conf
+
+# 添加反向代理
+location /api/ {
+    proxy_pass http://127.0.0.1:7175;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+}
+
+# 測試並重載
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+### 更新版本
+
+當有新版本發佈時：
+
+```bash
+cd ~/mall-api
+
+# 1. 編輯 docker-compose.yml，更新映像檔版本
+# image: ghcr.io/supojen/mall-api:v1.1.0
+
+# 2. 拉取新映像檔並重啟
+docker compose pull
+docker compose up -d
+
+# 3. 查看日誌確認正常
+docker compose logs -f
+```
+
+### 常用指令
+
 ```bash
 # 查看容器狀態
-make ps
+docker compose ps
 
 # 查看即時日誌
-make logs
+docker compose logs -f
 
 # 重啟服務
-make restart
+docker compose restart
+
+# 停止服務
+docker compose down
 
 # 進入容器除錯
-make shell
+docker compose exec mall-api sh
 
-# 檢查系統狀態
-make status
-
-# 清理未使用的映像檔
-make clean
-
-# 移除部署
-make undeploy
+# 清理舊映像檔
+docker image prune -f
 ```
-
-#### 自動化部署腳本說明
-
-**build.sh** - 本地建置腳本
-- 還原 NuGet 套件
-- 建置並發佈專案
-- 生成加密金鑰
-- 打包部署檔案
-
-**deploy.sh** - 伺服器部署腳本
-- 檢查部署環境
-- 啟動 Docker 容器
-- 配置 Nginx 反向代理
-- 設定 SSL 憑證
-- 健康檢查
-
-**undeploy.sh** - 解除部署腳本
-- 停止並移除容器
-- 清理相關資源
-- 移除 Nginx 配置
 
 ## 📖 使用指南
 

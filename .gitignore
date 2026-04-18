@@ -8,3 +8,8 @@ publish/
 **/appsettings.Development.json
 **/id_aes
 **/id_rsa*
+
+.env
+.env.*
+
+manian-api.tar.gz
