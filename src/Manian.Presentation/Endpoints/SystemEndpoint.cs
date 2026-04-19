@@ -81,7 +81,8 @@ public static class SystemEndpoint
             - 即使允許匿名訪問，也不會降低安全性
         ")
         .WithTags("系統")
-        .Produces(StatusCodes.Status200OK); 
+        .Produces(StatusCodes.Status200OK)
+        .AllowAnonymous(); 
     
         // 映射一個 GET 請求處理器到路徑 "/health"
         // 這是標準的健康檢查端點，用於容器編排平台（如 Kubernetes、Docker Swarm）
