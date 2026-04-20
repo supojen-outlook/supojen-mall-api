@@ -351,7 +351,7 @@ public class UserAddHandler : IRequestHandler<UserAddCommand, ProfileResponse>
         user.PointAccount = new PointAccount
         {
             // 產生全域唯一的整數 ID
-            Id = _uniqueIdentifier.NextInt(),
+            Id = user.Id,
             
             // 設定基本屬性
             Balance = 0,

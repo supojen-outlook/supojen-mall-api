@@ -13,9 +13,6 @@ CREATE TABLE point_transactions (
     occurred_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(), -- 交易發生時間 (Transaction time)
     metadata      JSONB      DEFAULT '{}',            -- 額外的交易資訊（JSON格式）(Additional metadata)
     
-    -- 主鍵約束
-    CONSTRAINT pk_point_transactions PRIMARY KEY (id),
-
     -- 外鍵約束：使用者刪除時是否保留交易記錄？
     -- 這裡選擇保留（NO ACTION），因為交易記錄可能是財務稽核所需
     CONSTRAINT fk_point_transactions_user FOREIGN KEY (user_id) 
