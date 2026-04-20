@@ -83,6 +83,7 @@ public static class MembershipEndpoint
                 - EmailVerified：電子郵件是否已驗證
                 - MembershipLevel：會員等級（bronze/silver/gold/vip）
                 - Points：獎勵點數餘額
+                - Roles：用戶角色
                 
                 使用範例：
                 - GET /api/profile
@@ -378,7 +379,7 @@ public static class MembershipEndpoint
             - 不允許更新 Email、密碼、點數等敏感欄位
             - 頭像 URL 應該是已上傳的資產 URL
         ")
-        .WithTags("會員管理")
+        .WithTags("會員")
         .Produces<ProfileResponse>(StatusCodes.Status200OK)
         .Produces(StatusCodes.Status401Unauthorized)
         .Produces(StatusCodes.Status404NotFound)

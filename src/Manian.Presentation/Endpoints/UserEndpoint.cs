@@ -1,5 +1,5 @@
 using Manian.Application.Commands.Users;
-using Manian.Application.Models.Memberships;
+using Manian.Application.Models;
 using Manian.Application.Queries.Users;
 using Manian.Domain.Entities.Memberships;
 using Microsoft.AspNetCore.Mvc;
@@ -175,6 +175,40 @@ public static class UserEndpoint
         .Produces(StatusCodes.Status200OK)
         .Produces(StatusCodes.Status404NotFound)
         .Produces(StatusCodes.Status400BadRequest);
+
+
+        // =========================================================================
+        // GET /api/users/roles - 查詢角色列表
+        // =========================================================================
+        // 定義 GET 端點，路由為 /api/users/roles
+        app.MapGet("/api/users/roles", HandleGetRolesAsync)
+        // 設定端點摘要
+        .WithSummary("查詢角色列表")
+        // 設定端點描述
+        .WithDescription(@"
+            查詢系統中的角色列表
+            
+            查詢參數：
+            - search：搜尋關鍵字（可選），會在 Name、Code 中搜尋
+            - cursor：游標（可選），用於分頁
+            - size：每頁資料筆數（可選）
+            
+            回傳格式：
+            - 200 OK：角色列表
+            
+            使用範例：
+            - GET /api/users/roles
+            - GET /api/users/roles?search=admin
+            - GET /api/users/roles?size=10
+            
+            說明：
+            - 支援 Cursor 分頁
+            - 預設按 ID 排序
+        ")
+        // 設定端點標籤
+        .WithTags("用戶管理")
+        // 產生 OpenAPI 回應定義
+        .Produces<Pagination<Role>>(StatusCodes.Status200OK);
     }
 
     // ===== Handler 方法 =====
@@ -285,5 +319,36 @@ public static class UserEndpoint
         // ========== 第二步：回傳更新結果 ==========
         // 回傳 200 OK 狀態碼
         return Results.Ok();
+    }
+
+    /// <summary>
+    /// 處理查詢角色列表請求的私有方法
+    /// 
+    /// 職責：
+    /// - 透過 Mediator 分發查詢
+    /// - 回傳查詢結果
+    /// 
+    /// 執行流程：
+    /// 1. 透過 Mediator 分發查詢請求
+    /// 2. 回傳查詢結果
+    /// </summary>
+    /// <param name="mediator">Mediator 服務，用於分發查詢請求</param>
+    /// <param name="query">角色查詢請求物件，包含搜尋和分頁參數</param>
+    /// <returns>
+    /// IResult：ASP.NET Core 的結果物件
+    /// - 200 OK：角色列表
+    /// </returns>
+    private static async Task<IResult> HandleGetRolesAsync(
+        [FromServices] IMediator mediator,
+        [AsParameters] RolesQuery query)
+    {
+        // ========== 第一步：透過 Mediator 分發查詢 ==========
+        // Mediator 會找到對應的 Handler（RolesQueryHandler）
+        // Handler 會執行查詢並回傳結果
+        var result = await mediator.SendAsync(query);
+        
+        // ========== 第二步：回傳查詢結果 ==========
+        // 回傳 200 OK 狀態碼和角色列表
+        return Results.Ok(result);
     }
 }
