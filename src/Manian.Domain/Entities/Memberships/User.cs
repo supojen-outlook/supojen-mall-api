@@ -43,7 +43,7 @@ public class User : IEntity
     /// <summary>
     /// 用戶頭像
     /// </summary>
-    public string Avatar { get; set; }
+    public string? Avatar { get; set; }
 
     /// <summary>
     /// 電子郵件

@@ -33,6 +33,7 @@ using Manian.Presentation.Endpoints.Orders;
 using Manian.Presentation.Endpoints.Products;
 using Manian.Presentation.Endpoints.Promotions;
 using Manian.Presentation.Endpoints.Warehouses;
+using Microsoft.AspNetCore.HttpOverrides;
 
 // ============================================
 // 應用程式建置階段 (Dependency Injection 配置)
@@ -82,7 +83,10 @@ builder.Services
 // 配置身份驗證服務
 // 使用 Cookie 身份驗證方案
 // "cookie" 是此驗證方案的名稱，可用於區分多個驗證方案
-builder.Services.AddAuthentication("cookie").Cookie();
+// Line 方法會讀取 appsettings.json 中的相關配置，如 Cookie 名稱、有效期限等
+builder.Services.AddAuthentication("cookie")
+    .Cookie()
+    .Line(builder.Configuration);
 
 // 配置授權服務
 // o.Fallback(): 設定默認的授權策略
@@ -151,6 +155,52 @@ builder.Services.AddAntiforgery(options =>
     options.FormFieldName = "__RequestVerificationToken_NotUsed";
 });
 
+// 配置轉發標頭 (Forwarded Headers) 服務
+// 
+// 功能說明：
+// - 處理來自反向代理（如 Nginx、Docker）的 HTTP 請求
+// - 從轉發標頭中提取原始客戶端資訊（IP、協議）
+// - 必須搭配 app.UseForwardedHeaders() 中間件使用
+// 
+// 設定詳解：
+// - ForwardedHeaders：指定要處理的轉發標頭類型
+//   * XForwardedFor：記錄原始客戶端 IP
+//   * XForwardedProto：記錄原始請求協議（http/https）
+// - KnownNetworks.Clear()：清除已知網路列表
+// - KnownProxies.Clear()：清除已知代理列表
+// 
+// 使用場景：
+// - 應用程式部署在 Docker 容器中
+// - 使用 Nginx 或其他反向代理
+// - 需要獲取真實客戶端 IP 和協議
+// 
+// 安全性警告：
+// - 清除限制會信任所有來源的轉發標頭
+// - 生產環境應明確指定可信任的代理 IP 或網段
+// - 避免標頭偽造攻擊（Header Spoofing）
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    // 指定要處理的轉發標頭
+    // 使用位元運算 OR (|) 組合多個標頭
+    // XForwardedFor：記錄原始客戶端 IP（可能包含多個代理 IP）
+    // XForwardedProto：記錄原始請求協議（http 或 https）
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    
+    // 清除已知網路和代理限制
+    // 
+    // 為什麼要清除？
+    // - Docker 環境中容器 IP 可能動態變化
+    // - 預設的已知網路列表可能不包含 Docker Bridge 的 IP
+    // - 清除後會信任所有來源的轉發標頭
+    // 
+    // 安全性考量：
+    // - 這會降低安全性，因為攻擊者可以偽造轉發標頭
+    // - 建議只在受控環境（如內網）中使用
+    // - 生產環境應該明確指定可信任的代理 IP 或網段
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 // ============================================
 // 應用程式建置完成，開始配置中間件管道
 // ============================================
@@ -183,6 +233,34 @@ if (app.Environment.IsDevelopment())
 // ============================================
 // HTTP 請求處理管道配置 (中間件順序很重要)
 // ============================================
+
+// 啟用轉發標頭 (Forwarded Headers) 中間件
+// 
+// 功能說明：
+// - 處理來自反向代理（如 Nginx、Docker）的 HTTP 請求
+// - 從轉發標頭中提取原始客戶端資訊（IP、協議）
+// - 更新 HttpContext 的相關屬性
+// 
+// 執行順序要求：
+// - 必須放在 app.UseRouting() 之後
+// - 必須放在 app.UseAuthentication() 和 app.UseAuthorization() 之前
+// 
+// 處理流程：
+// 1. 檢查請求中的轉發標頭（X-Forwarded-For、X-Forwarded-Proto）
+// 2. 驗證標頭來源是否可信（根據 KnownNetworks/KnownProxies）
+// 3. 更新 HttpContext.Connection.RemoteIpAddress
+// 4. 更新 HttpContext.Request.Scheme
+// 
+// 使用場景：
+// - 應用程式部署在 Docker 容器中
+// - 使用 Nginx 或其他反向代理
+// - 需要獲取真實客戶端 IP 和協議
+// 
+// 安全性警告：
+// - 必須配合 Configure<ForwardedHeadersOptions> 使用
+// - 生產環境應明確指定可信任的代理 IP 或網段
+// - 避免標頭偽造攻擊（Header Spoofing）
+app.UseForwardedHeaders();
 
 // 啟用路由功能
 // 必須在其他中間件之前配置，以便後續中間件能夠使用路由資訊

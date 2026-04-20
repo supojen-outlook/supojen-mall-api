@@ -341,31 +341,21 @@ public class UserAddHandler : IRequestHandler<UserAddCommand, ProfileResponse>
             MembershipLevel = request.MembershipLevel,
             Status = request.Status,
             Note = request.Note,
-            EmailVerified = false,
+            EmailVerified = true,
             
             // 設定建立時間為目前 UTC 時間
             CreatedAt = DateTimeOffset.UtcNow
         };
 
-        // ========== 第四步：建立對應的 PointAccount 實體 ==========
-        user.PointAccount = new PointAccount
-        {
-            // 產生全域唯一的整數 ID
-            Id = user.Id,
-            
-            // 設定基本屬性
-            Balance = 0,
-        };
-
-        // ========== 第五步：將實體加入倉儲 ==========
+        // ========== 第四步：將實體加入倉儲 ==========
         // 這只會將實體加入追蹤，不會立即寫入資料庫
         _userRepository.Add(user);
 
-        // ========== 第六步：儲存變更到資料庫 ==========
+        // ========== 第五步：儲存變更到資料庫 ==========
         // 這會將所有被追蹤的實體變更寫入資料庫
         await _userRepository.SaveChangeAsync();
 
-        // ========== 第七步：更新資產庫 ==========
+        // ========== 第六步：更新資產庫 ==========
         // 將頭像圖片更新到資產庫
         if (!string.IsNullOrEmpty(request.Avatar))
         {
@@ -377,7 +367,7 @@ public class UserAddHandler : IRequestHandler<UserAddCommand, ProfileResponse>
             });   
         }
 
-        // ========== 第八步：回傳儲存後的實體 ==========
+        // ========== 第七步：回傳儲存後的實體 ==========
         // 這會從資料庫中重新讀取實體，包含資料庫自動生成的欄位
         var profile = await _userRepository.GetAsync<ProfileResponse>(
             q => q.Where(u => u.Id == user.Id)

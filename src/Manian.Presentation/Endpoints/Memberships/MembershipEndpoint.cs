@@ -147,6 +147,50 @@ public static class MembershipEndpoint
             .Produces(StatusCodes.Status404NotFound);
 
         // =========================================================================
+        // GET /api/signin/line - 使用 Line 帳號登入
+        // =========================================================================
+        app.MapGet("/api/signin/line", LoginWithLineAsync)
+            .WithName("SigninWithLine")
+            .WithSummary("使用 Line 帳號登入")
+            .WithDescription(@"
+                使用 Line 帳號登入系統
+                
+                認證要求：
+                - 不需要登入（公開端點）
+                
+                請求格式：
+                - Query String 參數
+                
+                可選參數：
+                - redirectUri：登入成功後的重定向目標（預設為 /shop）
+                
+                回應格式：
+                - 302 Found：重定向到 Line 授權頁面
+                
+                Line 登入流程：
+                1. 系統重定向到 Line 授權頁面
+                2. 用戶在 Line 授權頁面確認授權
+                3. Line 重定向回目標 URI，並攜帶授權碼
+                4. 系統使用授權碼換取用戶資訊
+                5. 系統檢查用戶是否已註冊
+                - 已註冊：直接登入
+                - 未註冊：自動創建帳號並登入
+                6. 系統設定認證 Cookie
+                7. 用戶被重定向到目標頁面
+                
+                使用範例：
+                - GET /api/signin/line
+                - GET /api/signin/line?redirectUri=/profile
+                
+                注意事項：
+                - 必須在 Program.cs 中設定 Line 認證服務
+                - 必須在 Line Developers 平台註冊應用程式
+                - 必須設定正確的回調 URI（Callback URL）
+            ")
+            .WithTags("會員")
+            .AllowAnonymous();
+
+        // =========================================================================
         // GET /api/siginup - 發送註冊驗證碼
         // =========================================================================
         app.MapGet("/api/siginup", SignupAsync)
@@ -482,6 +526,95 @@ public static class MembershipEndpoint
         await context.SignInAsync("cookie", principal);
     }
 
+    /// <summary>
+    /// 使用 Line 帳號登入
+    /// 
+    /// 請求方式：GET /api/signin/line
+    /// 認證要求：不需要登入
+    /// 請求格式：Query String 中的 redirectUri 參數（可選）
+    /// 回應格式：重定向到 Line 授權頁面
+    /// 
+    /// 執行流程：
+    /// 1. 構建登入成功後的目標 URI（預設為 /shop）
+    /// 2. 重定向到 Line 授權頁面
+    /// 3. 用戶在 Line 授權頁面完成登入
+    /// 4. Line 重定向回目標 URI，並攜帶授權碼
+    /// 5. 系統使用授權碼換取用戶資訊並完成登入
+    /// 
+    /// 錯誤處理：
+    /// - 用戶取消授權：Line 會重定向回目標 URI，但帶有錯誤參數
+    /// - 授權失敗：由 Line 處理，系統會收到錯誤回應
+    /// 
+    /// Line 登入流程：
+    /// 1. 用戶點擊「使用 Line 登入」按鈕
+    /// 2. 系統重定向到 Line 授權頁面
+    /// 3. 用戶在 Line 授權頁面確認授權
+    /// 4. Line 重定向回目標 URI，並攜帶授權碼
+    /// 5. 系統使用授權碼換取用戶資訊
+    /// 6. 系統檢查用戶是否已註冊
+    ///    - 已註冊：直接登入
+    ///    - 未註冊：自動創建帳號並登入
+    /// 7. 系統設定認證 Cookie
+    /// 8. 用戶被重定向到目標頁面（/shop）
+    /// 
+    /// 使用範例：
+    /// - GET /api/signin/line
+    /// - GET /api/signin/line?redirectUri=/profile
+    /// 
+    /// 注意事項：
+    /// - 必須在 Program.cs 中設定 Line 認證服務
+    /// - 必須在 Line Developers 平台註冊應用程式
+    /// - 必須設定正確的回調 URI（Callback URL）
+    /// - 目標 URI 必須是應用程式內的有效路徑
+    /// </summary>
+    /// <param name="context">HTTP 上下文，用於構建目標 URI 和重定向</param>
+    /// <param name="redirectUri">登入成功後的重定向目標（可選），預設為 /shop</param>
+    /// <returns>重定向到 Line 授權頁面</returns>
+    private static async Task LoginWithLineAsync(HttpContext context)
+    {
+        // ========== 第一步：構建目標 URI ==========
+        string targetUri;
+        
+        // 檢查當前環境是否為開發環境
+        if (context.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment())
+        {
+            // 開發環境：直接使用固定的開發伺服器地址
+            // 這樣可以確保在開發過程中，登入後總是重定向到正確的前端開發伺服器
+            targetUri = "http://localhost:3000/shop/";
+        }
+        else
+        {
+            // 生產/測試環境：使用當前請求的協議和主機
+            // 使用 context.Request.Scheme 取得當前請求的協議（http 或 https）
+            // 使用 context.Request.Host 取得當前請求的主機名稱和連接埠
+            // 組合成完整的 URL，如 https://yourdomain.com/shop
+            // 
+            // 為什麼要這樣做？
+            // - 確保重定向 URI 使用與當前請求相同的協議和主機
+            // - 避免硬編碼 URL，提高可移植性
+            // - 支援多環境部署（開發、測試、生產）
+            targetUri = $"{context.Request.Scheme}://{context.Request.Host}/shop/";
+        }
+
+        // ========== 第二步：發起 Line 認證挑戰 ==========
+        // 使用 context.ChallengeAsync() 方法發起 OAuth 2.0 認證流程
+        // 第一個參數 "line" 是認證方案的名稱
+        // 這個名稱必須與 Program.cs 中 AddLineLogin() 設定的名稱一致
+        // 
+        // AuthenticationProperties 用於設定認證行為：
+        // - RedirectUri：認證成功後的重定向目標
+        // - 其他屬性：如 IsPersistent（是否持久化 Cookie）等
+        // 
+        // 這個方法會：
+        // 1. 生成 Line 授權 URL
+        // 2. 重定向用戶到 Line 授權頁面
+        // 3. 用戶完成授權後，Line 會重定向回 RedirectUri
+        // 4. 系統會自動處理回調並完成登入
+        await context.ChallengeAsync("line", new AuthenticationProperties()
+        {
+            RedirectUri = targetUri
+        });
+    }
 
     /// <summary>
     /// 發送註冊驗證碼

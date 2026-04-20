@@ -1,7 +1,10 @@
-using System;
+using System.Net.Http.Headers;
+using System.Security.Claims;
 using System.Text.Json;
+using Manian.Application.Commands.Memberships.Signs;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Shared.Mediator.Interface;
 
 namespace Manian.Presentation.Extensions;
 
@@ -18,6 +21,65 @@ namespace Manian.Presentation.Extensions;
 /// </summary>
 public static class AuthenticationExtensions
 {
+
+    public static AuthenticationBuilder Line(
+        this AuthenticationBuilder builder,
+        IConfiguration configuration)
+    {
+        builder.AddOAuth("line", o =>
+        {
+            o.SignInScheme = "cookie";
+
+            o.ClientId     = configuration["Line:ID"]     ?? throw new Exception("Please set line id");
+            o.ClientSecret = configuration["Line:Secret"] ?? throw new Exception("Please set line secret"); 
+
+            o.AuthorizationEndpoint   = "https://access.line.me/oauth2/v2.1/authorize";
+            o.TokenEndpoint           = "https://api.line.me/oauth2/v2.1/token";
+            o.UserInformationEndpoint = "https://api.line.me/v2/profile";
+
+            o.Scope.Clear();
+            o.Scope.Add("profile");
+            o.Scope.Add("openid");
+
+            o.CallbackPath = "/api/line-cb";
+            o.SaveTokens = true;
+            o.UsePkce = true;
+
+            o.Events.OnCreatingTicket = async ctx =>
+            {
+                var req = new HttpRequestMessage(HttpMethod.Get, ctx.Options.UserInformationEndpoint);
+                req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ctx.AccessToken);
+                var res = await ctx.Backchannel.SendAsync(req);
+
+                if (res.IsSuccessStatusCode)
+                {
+                    var information = await res.Content.ReadFromJsonAsync<JsonElement>();
+                
+                    var oidcId      = information.GetProperty("userId").GetString() ?? "";
+                    var displayName = information.GetProperty("displayName").GetString() ?? "";
+                
+                    var mediator = ctx.HttpContext.RequestServices.GetService<IMediator>() ?? throw new Exception("Mediator not found");
+
+                    var command = new SigninWithLineCommand()
+                    {
+                        ProviderUId = oidcId,
+                        DisplayName = displayName,
+                    };
+
+                    var user = await mediator.SendAsync(command);
+
+                    var identity = ctx.Identity!;
+
+                    identity.AddClaim(new Claim("sub", user.Id.ToString()));
+                    foreach (var role in user.Roles)
+                        identity.AddClaim(new Claim("role", role.Code));
+                }
+            };
+        });
+
+        return builder;
+    }
+
     /// <summary>
     /// 註冊自訂的 Cookie 認證方案
     /// 
