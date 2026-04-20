@@ -62,6 +62,9 @@ public static class DI
         // 註冊電子郵件服務（僅在設定檔中有對應設定時才註冊）
         services.AddEmailService(configuration);
 
+        // 註冊綠界金流服務（僅在設定檔中有對應設定時才註冊）
+        services.AddNewebPayService(configuration);
+
         return services;
     }
 
@@ -157,6 +160,54 @@ public static class DI
             
             // 註冊郵件發送服務（Transient：每次請求都建立新實例，適合輕量無狀態服務）
             services.AddTransient<IEmailService, EmailService>();
+        }
+    }
+
+    /// <summary>
+    /// 註冊藍新金流服務到依賴注入容器
+    /// 
+    /// 職責：
+    /// - 從設定檔讀取藍新金流相關設定
+    /// - 將設定綁定到 NewebPaySettings 類別
+    /// - 註冊 INewebPayService 介面與 NewebPayService 實作
+    /// 
+    /// 設計考量：
+    /// - 有條件註冊：僅在設定檔中有對應設定時才註冊
+    /// - 避免在未設定時拋出例外
+    /// - 支援多環境配置（開發、測試、生產）
+    /// 
+    /// 使用場景：
+    /// - 在 Program.cs 中呼叫 services.AddNewebPayService(configuration)
+    /// - 需要在 appsettings.json 中配置 NewebPay 區段
+    /// 
+    /// 設定範例：
+    /// {
+    ///   "NewebPay": {
+    ///     "HashKey": "your_hash_key",
+    ///     "HashIV": "your_hash_iv"
+    ///   }
+    /// }
+    /// </summary>
+    /// <param name="services">要擴充的 IServiceCollection 容器</param>
+    /// <param name="configuration">應用程式設定，用於讀取 NewebPay 設定</param>
+    public static void AddNewebPayService(this IServiceCollection services, IConfiguration configuration)
+    {
+        // 從設定檔中取得名為 "NewebPay" 的設定區段
+        // 這個區段包含藍新金流所需的 HashKey 和 HashIV
+        var section = configuration.GetSection("NewebPay");
+
+        // 檢查 NewebPay 設定區段是否存在且不為空
+        // GetChildren().Any() 檢查是否有子節點（如 HashKey、HashIV）
+        // !string.IsNullOrEmpty(section.Value) 檢查區段本身是否有直接值
+        if (section.GetChildren().Any() || !string.IsNullOrEmpty(section.Value))
+        {
+            // 將 NewebPay 設定區段綁定到 NewebPaySettings 選項類別
+            services.Configure<NewebPaySettings>(section);
+            
+            // 註冊 INewebPayService 介面與 NewebPayService 實作
+            // 使用 Transient 生命週期：每次請求都建立新實例
+            // 適合輕量無狀態服務，避免狀態共享問題
+            services.AddTransient<INewebPayService, NewebPayService>();
         }
     }
 }

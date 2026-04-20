@@ -20,4 +20,9 @@
     <PackageReference Include="Po.Mediator" Version="1.1.4" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Commands/NewebPay/" />
+    <Folder Include="Models/NewebPay/" />
+  </ItemGroup>
+
 </Project>

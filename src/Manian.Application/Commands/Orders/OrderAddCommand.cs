@@ -751,7 +751,7 @@ internal class OrderAddHandler : IRequestHandler<OrderAddCommand, Order>
             
             // 設定訂單編號（格式：ORD-YYYYMMDD-XXXXXX）
             // 使用當前 UTC 時間的日期部分和隨機 6 位數字
-            OrderNumber = $"ORD-{DateTimeOffset.UtcNow:yyyyMMdd}-{_uniqueIdentifier.NextInt():D6}",
+            OrderNumber = $"ORD_{DateTimeOffset.UtcNow:yyyyMMdd}_{_uniqueIdentifier.NextInt():D6}",
             
             // 設定折扣金額（促銷折扣 + 優惠券折扣）
             DiscountAmount = discountAmount + couponDiscountAmount,
@@ -896,10 +896,7 @@ internal class OrderAddHandler : IRequestHandler<OrderAddCommand, Order>
         // ========== 第三十一步：建立揀貨項目 ==========
         addPickItems(orderItems,inventories);
 
-        // ========== 第三十二步：建立付款記錄 ==========
-        AddPayment(order, totalAmount, request.PaymentMethod);
-
-        // ========== 第三十三步：建立 OrderSnapshot ==========
+        // ========== 第三十二步：建立 OrderSnapshot ==========
         var orderSnapshot = new OrderSnapshot
         {
             // 商品價格快照
@@ -942,7 +939,7 @@ internal class OrderAddHandler : IRequestHandler<OrderAddCommand, Order>
         order.Snapshot = orderSnapshot;
         
 
-        // ========== 第三十四步：建立物流記錄 ==========
+        // ========== 第三十三步：建立物流記錄 ==========
         AddShipment(
             order, 
             request.ShippingAddress, 
@@ -955,7 +952,7 @@ internal class OrderAddHandler : IRequestHandler<OrderAddCommand, Order>
         // 第六階段：清空購物車與回傳訂單
         // =========================================================================
 
-        // ========== 第三十五步：清空已結帳的購物車項目 ==========
+        // ========== 第三十四步：清空已結帳的購物車項目 ==========
         foreach (var cartItem in cartItems)
         {
             _cartItemRepository.Delete(cartItem);
@@ -964,7 +961,7 @@ internal class OrderAddHandler : IRequestHandler<OrderAddCommand, Order>
         // 將訂單加入集合
         await _orderRepository.SaveChangeAsync();
 
-        // ========== 第三十六步：回傳建立的訂單實體 ==========
+        // ========== 第三十五步：回傳建立的訂單實體 ==========
         return order;        
     }
 
@@ -1059,50 +1056,6 @@ internal class OrderAddHandler : IRequestHandler<OrderAddCommand, Order>
             }
         }        
     }
-
-    /// <summary>
-    /// 建立付款記錄 
-    /// 
-    /// 職責：
-    /// - 為訂單建立付款記錄
-    /// - 設定初始付款狀態為待付款
-    /// 
-    /// 設計考量：
-    /// - 一個訂單對應一筆付款記錄
-    /// - 初始狀態為 "pending"（待付款）
-    /// - 不立即寫入資料庫，由 SaveChangeAsync 統一處理
-    /// 
-    /// 資料關聯：
-    /// - 根據 sql/04-order/README.md 的五表關係圖
-    /// - Order 與 Payment 是一對一關係
-    /// - 一個訂單只有一筆付款記錄
-    /// 
-    /// 使用場景：
-    /// - 訂單建立時初始化付款記錄
-    /// - 記錄訂單總金額
-    /// </summary>
-    /// <param name="order">訂單實體</param>
-    /// <param name="totalAmount">訂單總金額</param>
-    /// <param name="paymentMethod">付款方式</param>
-    private void AddPayment(Order order, decimal totalAmount, string paymentMethod)
-    {
-        // ========== 第一步：建立付款記錄實體 ==========
-        var payment = new Payment
-        {
-            Id = _uniqueIdentifier.NextInt(), // 產生全域唯一的付款記錄 ID
-            OrderId = order.Id,               // 關聯到訂單
-            Amount = totalAmount,             // 設定付款金額
-            Method = paymentMethod,           // 設定付款方式
-            Status = "pending",               // 設定付款狀態為待付款
-            CreatedAt = DateTimeOffset.UtcNow // 設定建立時間為目前 UTC 時間
-        };
-
-        // ========== 第二步：將付款記錄加入倉儲 ==========
-        // 將付款記錄加入 EF Core 變更追蹤
-        // 不立即寫入資料庫，等待統一提交
-        // 這種設計允許在同一個工作單元中新增多筆資料後再一起送出
-        _orderRepository.AddPayment(payment);
-    } 
 
     /// <summary>
     /// 建立物流記錄

@@ -374,6 +374,9 @@ app.MapPointTransactionEndpoints();
 // 註冊所有用戶管理相關的 API 端點
 app.MapUserEndpoints();
 
+// 註冊所有支付相關的 API 端點
+app.MapPaymentEndpoints();
+
 // ============================================
 // 應用程式啟動
 // ============================================
