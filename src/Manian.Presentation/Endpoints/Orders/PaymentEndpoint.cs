@@ -1,6 +1,7 @@
 using Manian.Application.Commands.NewebPay;
 using Manian.Application.Models.NewebPay;
 using Microsoft.AspNetCore.Mvc;
+using Po.Api.Response;
 using Shared.Mediator.Interface;
 
 namespace Manian.Presentation.Endpoints.Orders;
@@ -209,37 +210,81 @@ public static class PaymentEndpoint
     /// 處理藍新金流付款回調的私有方法
     /// 
     /// 職責：
-    /// - 透過 Mediator 分發 NewebPayNotifyCommand 命令
-    /// - 回傳處理結果
+    /// - 接收並驗證藍新金流平台的付款回調通知
+    /// - 手動解析表單數據，避免自動 URL 解碼
+    /// - 透過 Mediator 分發處理命令
+    /// - 回傳藍新金流標準格式的回應
     /// 
     /// 設計考量：
-    /// - 將處理邏輯提取為私有方法，提高可讀性和可測試性
-    /// - 遵循單一職責原則（SRP）
-    /// - 便於未來擴展或修改處理邏輯
+    /// - 直接注入 HttpRequest 以獲取原始表單數據
+    /// - 手動解析表單數據，避免 ASP.NET Core 的自動 URL 解碼
+    /// - 使用藍新金流標準回應格式 "1|OK"
+    /// - 支援匿名訪問（由端點配置的 AllowAnonymous 控制）
     /// 
     /// 執行流程：
-    /// 1. 透過 Mediator 分發 NewebPayNotifyCommand 命令
-    /// 2. 回傳處理結果
+    /// 1. 驗證請求內容類型
+    /// 2. 讀取表單數據
+    /// 3. 手動建立命令物件
+    /// 4. 透過 Mediator 分發命令
+    /// 5. 回傳處理結果
+    /// 
+    /// 錯誤處理：
+    /// - 內容類型不正確：回傳 400 Bad Request
+    /// - 處理失敗：由 Handler 拋出例外
+    /// 
+    /// 安全性考量：
+    /// - 藍新金流會驗證回應格式是否為 "1|OK"
+    /// - TradeInfo 經過 AES 加密，需解密後才能使用
+    /// - 必須驗證 Status 是否為 "SUCCESS"
+    /// - 必須驗證金額是否正確，防止金額被篡改
     /// </summary>
     /// <param name="mediator">Mediator 服務，用於分發命令請求</param>
-    /// <param name="command">付款回調命令物件（包含 Status 和 TradeInfo）</param>
+    /// <param name="request">HTTP 請求物件，用於讀取原始表單數據</param>
     /// <returns>
     /// IResult：ASP.NET Core 的結果物件
-    /// - 200 OK：處理成功
+    /// - 200 OK：處理成功，回傳 "1|OK"
     /// - 400 Bad Request：請求內容錯誤
     /// </returns>
     private static async Task<IResult> HandleNotifyPaymentAsync(
         [FromServices] IMediator mediator,
-        [FromForm] NewebPayNotifyCommand command)
+        HttpRequest request)
     {
-        // ========== 第一步：透過 Mediator 分發命令 ==========
+        // ========== 第一步：驗證請求內容類型 ==========
+        // 檢查請求的 Content-Type 是否為表單數據
+        // 藍新金流回調使用 application/x-www-form-urlencoded 格式
+        if (!request.HasFormContentType) 
+            return Results.BadRequest("Invalid Content Type");
+
+        // ========== 第二步：讀取表單數據 ==========
+        // 使用 ReadFormAsync() 讀取表單數據
+        // 這會返回一個 IFormCollection 物件，包含所有表單欄位
+        var form = await request.ReadFormAsync();
+
+        // ========== 第三步：手動建立命令物件 ==========
+        // 手動從表單數據中提取欄位值，避免 ASP.NET Core 的自動 URL 解碼
+        // 這很重要，因為 TradeInfo 已經是加密數據，不應該被解碼
+        var command = new NewebPayNotifyCommand
+        {
+            // Status：回應狀態
+            Status = form["Status"]!,
+            
+            // TradeInfo：加密的交易資訊
+            TradeInfo = form["TradeInfo"]!,
+            
+            // TradeSha：交易檢查碼
+            TradeSha = form["TradeSha"]!
+        };
+
+        // ========== 第四步：透過 Mediator 分發命令 ==========
         // Mediator 會找到對應的 Handler（NewebPayNotifyHandler）
         // Handler 會執行付款回調處理並回傳結果
         await mediator.SendAsync(command);
         
-        // ========== 第二步：回傳處理結果 ==========
-        // 回傳 200 OK 狀態碼
+        // ========== 第五步：回傳處理結果 ==========
+        // 回傳 "1|OK"，這是藍新金流標準格式的成功回應
         // 藍新金流會根據這個回應確認是否成功接收回調
-        return Results.Ok("OK");
+        // 格式必須嚴格為 "1|OK"，否則藍新金流會認為回調失敗
+        return Results.Ok("1|OK");
     }
+
 }
