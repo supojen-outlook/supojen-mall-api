@@ -91,6 +91,9 @@ public class NewebPayService : INewebPayService
     /// <returns>解密後的原始字串</returns>
     public string DecryptAes(string hexString)
     {
+        Console.WriteLine($"[DEBUG] Key: '{_settings.HashKey[0]}...{_settings.HashKey[^1]}' (Length: {_settings.HashKey.Length})");
+        Console.WriteLine($"[DEBUG] IV: '{_settings.HashIV[0]}...{_settings.HashIV[^1]}' (Length: {_settings.HashIV.Length})");
+
         try
             {
                 // 1. 強制清理字串（移除可能的 URL 編碼殘留）
