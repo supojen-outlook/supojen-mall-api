@@ -358,8 +358,8 @@ public class NewebPayNotifyCommandHandler : IRequestHandler<NewebPayNotifyComman
                         _           => "credit_card_one_time"
                     },                                         // 設定付款方式
                     Status = "paid",                           // 設定付款狀態為已付款
-                    CreatedAt = paidAt,                        // 設定建立時間為目前 UTC 時間
-                    PaidAt = paidAt,                           // 設定付款時間（將字串轉換為 DateTimeOffset）
+                    CreatedAt = paidAt.ToUniversalTime(),      // 設定建立時間為目前 UTC 時間
+                    PaidAt = paidAt.ToUniversalTime(),         // 設定付款時間（將字串轉換為 DateTimeOffset）
                     TransactionId = systemTradeNo              // 設定藍新交易序號
                 };     
 
