@@ -312,7 +312,7 @@ public class NewebPayNotifyCommandHandler : IRequestHandler<NewebPayNotifyComman
             string systemTradeNo = r.TradeNo;
             
             // 實際付款金額
-            int payAmt = int.Parse(r.Amt);
+            int payAmt = r.Amt;
             
             // 付款時間
             string? payTime = r.PayTime;
