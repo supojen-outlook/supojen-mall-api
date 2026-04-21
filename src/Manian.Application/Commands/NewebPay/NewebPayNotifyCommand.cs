@@ -275,9 +275,18 @@ public class NewebPayNotifyCommandHandler : IRequestHandler<NewebPayNotifyComman
             throw Failure.BadRequest("TradeSha is invalid");
 
         // ========== 第四步：解密回傳資料 ==========
-        // 使用 INewebPayService.DecryptAes() 解密 TradeInfo
-        // 解密後的資料是 JSON 格式
-        string decryptedJson = _newebPayService.DecryptAes(request.TradeInfo);
+        string decryptedRaw = _newebPayService.DecryptAes(request.TradeInfo);
+        
+        // ========== 關鍵修正：清理 JSON 字串 ==========
+        // 1. 尋找最後一個右大括號，確保 JSON 結構完整
+        int lastBraceIndex = decryptedRaw.LastIndexOf('}');
+        if (lastBraceIndex == -1)
+        {
+             throw Failure.BadRequest("解密後的資料格式錯誤，找不到 JSON 結尾");
+        }
+        
+        // 2. 只截取到 } 為止，徹底切掉後面的 Padding (如 0x1d)
+        string decryptedJson = decryptedRaw.Substring(0, lastBraceIndex + 1);
         
         // ========== 第五步：反序列化成物件 ==========
         // 將解密後的 JSON 反序列化成 NewebPayResponse 物件
@@ -335,30 +344,37 @@ public class NewebPayNotifyCommandHandler : IRequestHandler<NewebPayNotifyComman
 
             // ========== 第九步：建立付款記錄 ==========
             // 建立新的付款記錄實體
-            var payment = new Payment()
+            if (DateTimeOffset.TryParse(callbackData.Result.PayTime, out var paidAt))
             {
-                Id = _uniqueIdentifier.NextInt(),          // 產生全域唯一的付款記錄 ID
-                OrderId = order.Id,                        // 關聯到訂單
-                Amount = order.TotalAmount,                // 設定付款金額
-                Method = payMethod switch
+                var payment = new Payment()
                 {
-                    "TAIWANPAY" => "taiwan_pay",
-                    "VACC"      => "atm_virtual",
-                    _           => "credit_card_one_time"
-                },                                         // 設定付款方式
-                Status = "paid",                           // 設定付款狀態為已付款
-                CreatedAt = DateTimeOffset.UtcNow,         // 設定建立時間為目前 UTC 時間
-                PaidAt = DateTimeOffset.Parse(payTime),    // 設定付款時間（將字串轉換為 DateTimeOffset）
-                TransactionId = systemTradeNo              // 設定藍新交易序號
-            };
+                    Id = _uniqueIdentifier.NextInt(),          // 產生全域唯一的付款記錄 ID
+                    OrderId = order.Id,                        // 關聯到訂單
+                    Amount = order.TotalAmount,                // 設定付款金額
+                    Method = payMethod switch
+                    {
+                        "TAIWANPAY" => "taiwan_pay",
+                        "VACC"      => "atm_virtual",
+                        _           => "credit_card_one_time"
+                    },                                         // 設定付款方式
+                    Status = "paid",                           // 設定付款狀態為已付款
+                    CreatedAt = DateTimeOffset.UtcNow,         // 設定建立時間為目前 UTC 時間
+                    PaidAt = paidAt,                           // 設定付款時間（將字串轉換為 DateTimeOffset）
+                    TransactionId = systemTradeNo              // 設定藍新交易序號
+                };     
 
-            // ========== 第十步：新增付款記錄 ==========
-            // 使用 IOrderRepository.AddPayment() 新增付款記錄
-            _orderRepository.AddPayment(payment);
+                // ========== 第十步：新增付款記錄 ==========
+                // 使用 IOrderRepository.AddPayment() 新增付款記錄
+                _orderRepository.AddPayment(payment);
 
-            // ========== 第十一步：儲存變更 ==========
-            // 使用 IOrderRepository.SaveChangeAsync() 將變更寫入資料庫
-            await _orderRepository.SaveChangeAsync();
+                // ========== 第十一步：儲存變更 ==========
+                // 使用 IOrderRepository.SaveChangeAsync() 將變更寫入資料庫
+                await _orderRepository.SaveChangeAsync();
+            }
+
+            // 解析失敗
+            throw Failure.BadRequest("更新付款資訊失敗");
+
         }
         else
         {
