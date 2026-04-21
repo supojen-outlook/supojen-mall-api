@@ -106,7 +106,7 @@ public class NewebPayReturnCommandHandler : IRequestHandler<NewebPayReturnComman
             {
                 Id = _uniqueIdentifier.NextInt(),
                 OrderId = order.Id,
-                Amount = r.Amt,
+                Amount = int.Parse(r.Amt),
                 TransactionId = r.TradeNo,
                 Status = "pending",
                 Method = r.PaymentType switch

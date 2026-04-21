@@ -244,7 +244,7 @@ public class NewebPayContent
     /// - 必須與訂單金額一致
     /// - 建議記錄到日誌系統
     /// </summary>
-    public int Amt { get; set; }
+    public string Amt { get; set; }
 
     /// <summary>
     /// 藍新金流交易序號
@@ -303,7 +303,7 @@ public class NewebPayContent
     /// - 時區為台灣時間 (UTC+8)
     /// - 建議記錄到日誌系統
     /// </summary>
-    public string PayTime { get; set; }
+    public string? PayTime { get; set; }
 
     /// <summary>
     /// 付款方式
@@ -368,4 +368,8 @@ public class NewebPayContent
     /// - 建議記錄到日誌系統
     /// </summary>
     public string RespondType { get; set; }
+
+    public string? BankCode { get; set; }
+    public string? CodeNo { get; set; }
+    public string? ExpireDate { get; set; } // 到期日
 }
