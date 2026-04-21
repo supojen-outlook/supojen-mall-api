@@ -45,26 +45,35 @@ public interface INewebPayService
     /// <summary>
     /// 商店代號
     /// </summary>
-    public string MerchantID { get; }
+    string MerchantID { get; }
 
     /// <summary>
     /// 加密：將物件轉為 AES Hex 字串
     /// </summary>
     /// <param name="queryString">要加密的查詢字串</param>
     /// <returns>加密後的 Hex 字串</returns>
-    public string EncryptAes(string queryString);
+    string EncryptAes(string queryString);
 
     /// <summary>
     /// 解密：將藍新回傳的 Hex 字串轉回原始字串
     /// </summary>
     /// <param name="hexString">要解密的 Hex 字串</param>
     /// <returns>解密後的原始字串</returns>
-    public string DecryptAes(string hexString);
+    string DecryptAes(string hexString);
 
     /// <summary>
     /// 產生檢查碼
     /// </summary>
     /// <param name="aesString">加密後的 AES 字串</param>
     /// <returns>SHA256 檢查碼</returns>
-    public string GetSha256(string aesString);
+    string GetSha256(string aesString);
+
+
+    /// <summary>
+    /// 驗證檢查碼是否正確
+    /// </summary>
+    /// <param name="tradeInfo">藍新回傳的加密字串 (TradeInfo)</param>
+    /// <param name="tradeSha">藍新回傳的檢查碼 (TradeSha)</param>
+    /// <returns>驗證結果</returns>
+    bool ValidateSha256(string tradeInfo, string tradeSha);
 }

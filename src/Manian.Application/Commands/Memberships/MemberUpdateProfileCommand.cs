@@ -1,7 +1,6 @@
 using Manian.Application.Commands.Assets;
 using Manian.Application.Models.Memberships;
 using Manian.Application.Services;
-using Manian.Domain.Entities.Memberships;
 using Manian.Domain.Repositories.Memberships;
 using Po.Api.Response;
 using Shared.Mediator.Interface;
@@ -316,12 +315,15 @@ public class MemberUpdateProfileCommandHandler : IRequestHandler<MemberUpdatePro
                 Urls = [ request.Avatar ],
                 TargetType = "user",
                 TargetId = user.Id
-            });   
+            });
 
-            await _mediator.SendAsync(new AssetDeleteCommand()
+            if (!string.IsNullOrEmpty(user.Avatar))
             {
-                Urls = [ user.Avatar ]
-            });   
+                await _mediator.SendAsync(new AssetDeleteCommand()
+                {
+                    Urls = [ user.Avatar ]
+                });    
+            }  
 
             user.Avatar = request.Avatar;
         }

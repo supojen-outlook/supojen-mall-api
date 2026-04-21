@@ -119,4 +119,25 @@ public class NewebPayService : INewebPayService
         byte[] bytes = SHA256.HashData(Encoding.UTF8.GetBytes(salt));
         return BitConverter.ToString(bytes).Replace("-", "").ToUpper();
     }
+
+
+    /// <summary>
+    /// 驗證檢查碼是否正確
+    /// </summary>
+    /// <param name="tradeInfo">藍新回傳的加密字串 (TradeInfo)</param>
+    /// <param name="tradeSha">藍新回傳的檢查碼 (TradeSha)</param>
+    /// <returns>驗證結果</returns>
+    public bool ValidateSha256(string tradeInfo, string tradeSha)
+    {
+        if (string.IsNullOrEmpty(tradeInfo) || string.IsNullOrEmpty(tradeSha))
+        {
+            return false;
+        }
+
+        // 使用現有的 GetSha256 方法計算出我們版本的大寫 SHA 字串
+        string calculatedSha = GetSha256(tradeInfo);
+
+        // 進行比對 (忽略大小寫以防萬一，雖然藍新通常給大寫)
+        return string.Equals(calculatedSha, tradeSha, StringComparison.OrdinalIgnoreCase);
+    }
 }

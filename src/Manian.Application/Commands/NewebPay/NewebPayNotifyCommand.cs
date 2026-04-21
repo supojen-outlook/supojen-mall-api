@@ -102,6 +102,40 @@ public class NewebPayNotifyCommand : IRequest
     /// - 建議將完整回應記錄到日誌系統
     /// </summary>
     public string TradeInfo { get; set; }
+
+    /// <summary>
+    /// 檢查碼
+    /// 
+    /// 用途：
+    /// - 用於驗證交易資訊的完整性
+    /// - 需要使用 SHA256 演算法計算
+    /// 
+    /// 計算方式：
+    /// - 使用 NewebPaySettings 中的 MerchantID 和 MerchantHashKey
+    /// - 使用 SHA256 演算法計算 Status + MerchantOrderNo + Amt + TradeNo
+    /// 
+    /// 使用範例：
+    /// <code>
+    /// // 計算檢查碼
+    /// string tradeSha = _newebPayService.GenerateSha256
+    /// (merchantOrderNo, tradeNo, amount, status);
+    /// 
+    /// // 比較檢查碼
+    /// if (tradeSha == request.TradeSha)
+    /// {
+    ///    // 驗證成功
+    /// }
+    /// else
+    /// {
+    ///  // 驗證失敗
+    /// }
+    /// </code>
+    /// 
+    /// 注意事項：
+    /// - 必須使用 INewebPayService.GenerateSha256() 計算
+    /// - 檢查碼必須與 TradeSha 一致
+    /// </summary>
+    public string TradeSha { get; set; }
 }
 
 /// <summary>
@@ -230,12 +264,22 @@ public class NewebPayNotifyCommandHandler : IRequestHandler<NewebPayNotifyComman
         if (string.IsNullOrEmpty(request.TradeInfo)) 
             throw Failure.BadRequest("TradeInfo is required");
 
-        // ========== 第二步：解密回傳資料 ==========
+        // ========== 第二步：驗證 TradeSha 是否存在 ==========
+        // TradeSha 是交易資訊的檢查碼，必須存在才能進行後續處理
+        if (string.IsNullOrEmpty(request.TradeSha))
+            throw Failure.BadRequest("TradeSha is required");
+
+        // ========== 第三步：驗證 TradeSha 是否正確 ==========
+        // 使用 INewebPayService.ValidateSha256() 驗證 TradeSha 是否正確
+        if(!_newebPayService.ValidateSha256(request.TradeSha, request.TradeInfo))
+            throw Failure.BadRequest("TradeSha is invalid");
+
+        // ========== 第四步：解密回傳資料 ==========
         // 使用 INewebPayService.DecryptAes() 解密 TradeInfo
         // 解密後的資料是 JSON 格式
         string decryptedJson = _newebPayService.DecryptAes(request.TradeInfo);
         
-        // ========== 第三步：反序列化成物件 ==========
+        // ========== 第五步：反序列化成物件 ==========
         // 將解密後的 JSON 反序列化成 NewebPayResponse 物件
         // 使用 PropertyNameCaseInsensitive = true 忽略大小寫
         var callbackData = JsonSerializer.Deserialize<NewebPayConfirmedModel>(decryptedJson, new JsonSerializerOptions 
@@ -243,12 +287,12 @@ public class NewebPayNotifyCommandHandler : IRequestHandler<NewebPayNotifyComman
             PropertyNameCaseInsensitive = true 
         });
 
-        // ========== 第四步：驗證回應狀態 ==========
+        // ========== 第六步：驗證回應狀態 ==========
         // 檢查回應狀態是否為 "SUCCESS"
         // 只有狀態為 "SUCCESS" 才繼續處理
         if (callbackData?.Status == "SUCCESS")
         {
-            // ========== 第五步：提取核心參數 ==========
+            // ========== 第六之二步：提取核心參數 ==========
             // 從回應結果中提取五個核心參數
             var r = callbackData.Result;
 
