@@ -289,7 +289,7 @@ public class NewebPayCreateHandler : IRequestHandler<NewebPayCreateCommand, Newe
             { "CREDIT", "1" },
             
             // 回應格式：固定為 JSON
-            { "RespondType", "JSON" },
+            { "RespondType", "String" },
             
             // 時間戳記：目前時間的 Unix 時間戳（秒）
             { "TimeStamp", DateTimeOffset.Now.ToUnixTimeSeconds().ToString() },
