@@ -244,7 +244,8 @@ public class NewebPayContent
     /// - 必須與訂單金額一致
     /// - 建議記錄到日誌系統
     /// </summary>
-    public string Amt { get; set; }
+    [System.Text.Json.Serialization.JsonNumberHandling(System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString)]
+    public int Amt { get; set; }
 
     /// <summary>
     /// 藍新金流交易序號
