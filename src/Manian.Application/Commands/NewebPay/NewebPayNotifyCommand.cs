@@ -271,7 +271,7 @@ public class NewebPayNotifyCommandHandler : IRequestHandler<NewebPayNotifyComman
 
         // ========== 第三步：驗證 TradeSha 是否正確 ==========
         // 使用 INewebPayService.ValidateSha256() 驗證 TradeSha 是否正確
-        if(!_newebPayService.ValidateSha256(request.TradeSha, request.TradeInfo))
+        if(!_newebPayService.ValidateSha256(request.TradeInfo, request.TradeSha))
             throw Failure.BadRequest("TradeSha is invalid");
 
         // ========== 第四步：解密回傳資料 ==========
