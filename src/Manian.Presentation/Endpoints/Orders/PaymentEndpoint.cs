@@ -97,7 +97,7 @@ public static class PaymentEndpoint
         ")
         
         // 設定端點標籤，用於 Swagger UI 分組
-        .WithTags("訂單管理")
+        .WithTags("藍新金流")
         
         // 產生 OpenAPI 回應定義
         .Produces<NewebPayRequestModel>(StatusCodes.Status200OK)
@@ -140,7 +140,7 @@ public static class PaymentEndpoint
         ")
         
         // 設定端點標籤，用於 Swagger UI 分組
-        .WithTags("訂單管理")
+        .WithTags("藍新金流")
         
         // 產生 OpenAPI 回應定義
         .Produces(StatusCodes.Status200OK)
@@ -183,7 +183,7 @@ public static class PaymentEndpoint
         ")
 
         // 設定端點標籤，用於 Swagger UI 分組
-        .WithTags("訂單管理")
+        .WithTags("藍新金流")
 
         // 產生 OpenAPI 回應定義
         .Produces(StatusCodes.Status302Found)
