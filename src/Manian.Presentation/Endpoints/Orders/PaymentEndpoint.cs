@@ -187,7 +187,9 @@ public static class PaymentEndpoint
 
         // 產生 OpenAPI 回應定義
         .Produces(StatusCodes.Status302Found)
-        .Produces(StatusCodes.Status404NotFound);
+        .Produces(StatusCodes.Status404NotFound)
+        .AllowAnonymous()
+        .DisableAntiforgery();
 
     }
 
