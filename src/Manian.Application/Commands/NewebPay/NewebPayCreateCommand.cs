@@ -283,7 +283,7 @@ public class NewebPayCreateHandler : IRequestHandler<NewebPayCreateCommand, Newe
             { "MerchantID",  _newebPayService.MerchantID },
             
             // 回應格式：固定為 JSON
-            { "RespondType", "String" },
+            { "RespondType", "JSON" },
             
             // 時間戳記：目前時間的 Unix 時間戳（秒）
             { "TimeStamp", DateTimeOffset.Now.ToUnixTimeSeconds().ToString() },

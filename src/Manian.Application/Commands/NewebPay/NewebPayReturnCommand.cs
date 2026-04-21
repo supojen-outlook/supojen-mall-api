@@ -88,6 +88,29 @@ public class NewebPayReturnCommandHandler : IRequestHandler<NewebPayReturnComman
 
         if(callbackData == null) throw Failure.BadRequest("解密後的資料格式錯誤，無法反序列化");
 
+
+    // Console log 所有欄位
+    Console.WriteLine("=== NewebPayConfirmedModel ===");
+    Console.WriteLine($"Status: {callbackData.Status}");
+    Console.WriteLine($"Message: {callbackData.Message}");
+
+    if (callbackData.Result != null)
+    {
+        Console.WriteLine("=== Result ===");
+        Console.WriteLine($"MerchantID: {callbackData.Result.MerchantID}");
+        Console.WriteLine($"MerchantOrderNo: {callbackData.Result.MerchantOrderNo}");
+        Console.WriteLine($"TradeNo: {callbackData.Result.TradeNo}");
+        Console.WriteLine($"Amt: {callbackData.Result.Amt}");
+        Console.WriteLine($"PayTime: {callbackData.Result.PayTime}");
+        Console.WriteLine($"PaymentType: {callbackData.Result.PaymentType}");
+        Console.WriteLine($"RespondType: {callbackData.Result.RespondType}");
+        Console.WriteLine($"BankCode: {callbackData.Result.BankCode}");
+        Console.WriteLine($"CodeNo: {callbackData.Result.CodeNo}");
+        Console.WriteLine($"ExpireDate: {callbackData.Result.ExpireDate}");
+    }
+
+
+
         // ============================================================
         // 核心邏輯開始：處理訂單與付款記錄
         // ============================================================
