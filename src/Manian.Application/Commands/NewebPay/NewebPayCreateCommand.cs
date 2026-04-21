@@ -281,12 +281,6 @@ public class NewebPayCreateHandler : IRequestHandler<NewebPayCreateCommand, Newe
         {
             // 商店代號：從 INewebPayService 讀取
             { "MerchantID",  _newebPayService.MerchantID },
-
-            // 強制開啟 ATM
-            { "VACC", "1" },     
-            
-            // 強制開啟信用卡
-            { "CREDIT", "1" },
             
             // 回應格式：固定為 JSON
             { "RespondType", "String" },
