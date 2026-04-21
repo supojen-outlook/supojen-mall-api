@@ -91,41 +91,51 @@ public class NewebPayService : INewebPayService
     /// <returns>解密後的原始字串</returns>
     public string DecryptAes(string hexString)
     {
-        Console.WriteLine($"[DEBUG] Key: '{_settings.HashKey[0]}...{_settings.HashKey[^1]}' (Length: {_settings.HashKey.Length})");
-        Console.WriteLine($"[DEBUG] IV: '{_settings.HashIV[0]}...{_settings.HashIV[^1]}' (Length: {_settings.HashIV.Length})");
-
         try
-            {
-                // 1. 強制清理字串（移除可能的 URL 編碼殘留）
-                hexString = hexString.Trim();
-                
-                // 2. 打印資料特徵 (這在 Log 裡非常有幫助)
-                Console.WriteLine($"[DEBUG] TradeInfo Length: {hexString.Length}");
-                Console.WriteLine($"[DEBUG] TradeInfo Start: {hexString[..Math.Min(10, hexString.Length)]}");
+        {
+            hexString = hexString.Trim();
+            byte[] encryptedBytes = Enumerable.Range(0, hexString.Length / 2)
+                .Select(x => Convert.ToByte(hexString.Substring(x * 2, 2), 16))
+                .ToArray();
 
-                byte[] encryptedBytes = Enumerable.Range(0, hexString.Length / 2)
-                    .Select(x => Convert.ToByte(hexString.Substring(x * 2, 2), 16))
-                    .ToArray();
+            using var aes = Aes.Create();
+            aes.Key = Encoding.UTF8.GetBytes(_settings.HashKey);
+            aes.IV = Encoding.UTF8.GetBytes(_settings.HashIV);
+            aes.Mode = CipherMode.CBC;
+            
+            // 關鍵修改 1：設定為 None，不讓 .NET 自動檢查填充
+            aes.Padding = PaddingMode.None; 
 
-                using var aes = Aes.Create();
-                // 確保 Key 和 IV 是 32/16 bytes
-                aes.Key = Encoding.UTF8.GetBytes(_settings.HashKey);
-                aes.IV = Encoding.UTF8.GetBytes(_settings.HashIV);
-                aes.Mode = CipherMode.CBC;
-                aes.Padding = PaddingMode.PKCS7;
+            var decryptor = aes.CreateDecryptor();
+            byte[] allBytes = decryptor.TransformFinalBlock(encryptedBytes, 0, encryptedBytes.Length);
+            
+            // 關鍵修改 2：手動移除填充 (實作見下方)
+            byte[] decryptedBytes = RemovePKCS7Padding(allBytes);
+            
+            return Encoding.UTF8.GetString(decryptedBytes).Trim();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DECRYPT ERROR] {ex.Message}");
+            throw;
+        }
+    }
 
-                var decryptor = aes.CreateDecryptor();
-                byte[] decryptedBytes = decryptor.TransformFinalBlock(encryptedBytes, 0, encryptedBytes.Length);
-                
-                return Encoding.UTF8.GetString(decryptedBytes);
-            }
-            catch (CryptographicException)
-            {
-                // 如果報 Padding 錯誤，把原始 Hex 印出來，我們手動去線上工具解密看看
-                Console.WriteLine($"[CRYPTO ERROR] Hex 資料內容: {hexString}");
-                Console.WriteLine($"[CRYPTO ERROR] 使用的 Key 長度: {_settings.HashKey.Length}");
-                throw;
-            }
+    // 輔助方法：手動移除 PKCS7 填充
+    private static byte[] RemovePKCS7Padding(byte[] data)
+    {
+        if (data == null || data.Length == 0) return Array.Empty<byte>();
+        
+        // PKCS7 填充的規則是：最後一個 byte 的數值代表填充了幾個 byte
+        int paddingLength = data[data.Length - 1];
+        
+        // 安全檢查：如果數值不合理，說明解密出來根本是亂碼
+        if (paddingLength < 1 || paddingLength > 16) return data; 
+
+        int outputLength = data.Length - paddingLength;
+        var output = new byte[outputLength];
+        Buffer.BlockCopy(data, 0, output, 0, outputLength);
+        return output;
     }
 
     /// <summary>
