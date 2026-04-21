@@ -310,7 +310,7 @@ public class NewebPayCreateHandler : IRequestHandler<NewebPayCreateCommand, Newe
             { "NotifyURL", $"{request.Domain}/api/payment/notify" },
             
             // 付款返回 URL：使用者付款後轉跳回來的地方
-            { "ReturnURL", $"{request.Domain}/shop/" }
+            { "ReturnURL", $"{request.Domain}/api/payment/return" }
         };
 
         // ========== 第五步：生成查詢字串 ==========
