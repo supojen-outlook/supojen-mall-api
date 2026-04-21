@@ -153,7 +153,7 @@ public static class PaymentEndpoint
         // =========================================================================
 
         // 定義 GET 端點，路由為 /api/payment/return
-        app.MapGet("/api/payment/return", HandlePaymentReturnAsync)
+        app.MapPost("/api/payment/return", HandlePaymentReturnAsync)
 
         // 設定端點摘要，顯示在 Swagger UI 中
         .WithSummary("藍新金流付款返回")
