@@ -310,7 +310,11 @@ public class NewebPayCreateHandler : IRequestHandler<NewebPayCreateCommand, Newe
             { "NotifyURL", $"{request.Domain}/api/payment/notify" },
             
             // 付款返回 URL：使用者付款後轉跳回來的地方
-            { "ReturnURL", $"{request.Domain}/api/payment/return" }
+            { "ReturnURL", $"{request.Domain}/api/payment/return" },
+
+            // 關鍵新增項目：非同步付款取號通知 (ATM/超商取號必備)
+            // 當使用者在藍新頁面看到 ATM 帳號時，藍新會自動打這支 API
+            { "CustomerURL", $"{request.Domain}/api/payment/customer" }
         };
 
         // ========== 第五步：生成查詢字串 ==========

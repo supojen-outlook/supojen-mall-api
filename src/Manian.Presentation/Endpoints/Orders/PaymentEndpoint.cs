@@ -191,6 +191,52 @@ public static class PaymentEndpoint
         .AllowAnonymous()
         .DisableAntiforgery();
 
+        // =========================================================================
+        // POST /api/payment/customer - 藍新金流客戶端返回
+        // =========================================================================
+
+        // 定義 POST 端點，路由為 /api/payment/customer
+        app.MapPost("/api/payment/customer", HandlePaymentCustomerAsync)
+
+        // 設定端點摘要，顯示在 Swagger UI 中
+        .WithSummary("藍新金流客戶端返回")
+
+        // 設定端點描述，提供詳細的使用說明
+        .WithDescription(@"
+            接收藍新金流平台的客戶端返回請求
+            
+            請求參數：
+            - Query String：Status、MerchantID
+            - Form Body：TradeInfo、TradeSha、Status（可選）
+            
+            回傳格式：
+            - 200 OK：處理成功，回傳 ""1_OK""
+            - 400 Bad Request：請求內容錯誤
+            
+            使用範例：
+            - POST /api/payment/customer?Status=SUCCESS&MerchantID=MS123456789
+            {
+                ""TradeInfo"": ""加密的交易資訊"",
+                ""TradeSha"": ""交易檢查碼""
+            }
+            
+            說明：
+            - 這是使用者從藍新金流付款頁面返回的端點
+            - 支援從 Query String 和 Form Body 兩種方式接收參數
+            - TradeInfo 經過 AES 加密，需解密後才能使用
+            - 必須驗證 Status 是否為 ""SUCCESS""
+            - 必須驗證金額是否正確，防止金額被篡改
+            - 回傳 ""1_OK"" 給藍新伺服器，藍新收到 ""1_OK"" 才會停止發送通知
+        ")
+
+        // 設定端點標籤，用於 Swagger UI 分組
+        .WithTags("藍新金流")
+
+        // 產生 OpenAPI 回應定義
+        .Produces(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status400BadRequest)
+        .AllowAnonymous()
+        .DisableAntiforgery();
     }
 
     // =========================================================================
@@ -409,5 +455,95 @@ public static class PaymentEndpoint
                 return Results.Redirect($"/shop/checkout/processing?orderNo={order.OrderNumber}");
             }
         }
+    }
+
+    /// <summary>
+    /// 處理藍新金流客戶端返回的私有方法
+    /// 
+    /// 職責：
+    /// - 接收藍新金流客戶端返回的請求
+    /// - 解析並驗證返回參數
+    /// - 透過 Mediator 分發處理命令
+    /// - 回傳處理結果給藍新金流
+    /// 
+    /// 設計考量：
+    /// - 支援從 Query String 和 Form Body 兩種方式接收參數
+    /// - 藍新金流會根據回應確認是否成功接收
+    /// - 使用標準回應格式 "1_OK"
+    /// 
+    /// 執行流程：
+    /// 1. 建立 Command 實例並從 Query String 抓取基本欄位
+    /// 2. 從 Form Body 抓取關鍵的加密資料
+    /// 3. 透過 Mediator 分發命令
+    /// 4. 回傳處理結果
+    /// 
+    /// 錯誤處理：
+    /// - 處理失敗：由 Handler 拋出例外
+    /// - 藍新金流會根據回應決定是否重試
+    /// 
+    /// 安全性考量：
+    /// - TradeInfo 經過 AES 加密，需解密後才能使用
+    /// - 必須驗證 Status 是否為 "SUCCESS"
+    /// - 必須驗證金額是否正確，防止金額被篡改
+    /// 
+    /// 使用場景：
+    /// - 使用者在藍新金流付款頁面完成付款後返回
+    /// - 使用者在藍新金流付款頁面取消付款後返回
+    /// - 藍新金流自動返回（如付款超時）
+    /// </summary>
+    /// <param name="request">HTTP 請求物件，用於讀取 Query String 和 Form Body</param>
+    /// <param name="mediator">Mediator 服務，用於分發命令請求</param>
+    /// <returns>
+    /// IResult：ASP.NET Core 的結果物件
+    /// - 200 OK：處理成功，回傳 "1_OK"
+    /// - 400 Bad Request：請求內容錯誤
+    /// </returns>
+    public static async Task<IResult> HandlePaymentCustomerAsync(
+        HttpRequest request,
+        [FromServices] IMediator mediator)
+    {
+        // ========== 第一步：建立 Command 實例 ==========
+        // 建立一個 NewebPayReturnCommand 實例
+        // 這個實例將用於封裝從藍新金流接收到的所有參數
+        var command = new NewebPayReturnCommand();
+
+        // ========== 第二步：從 Query String 抓取基本欄位 ==========
+        // 優先從 Query String 抓取基本欄位
+        // 這些欄位通常會在 URL 的查詢字串中
+        command.Status = request.Query["Status"];
+        command.MerchantID = request.Query["MerchantID"];
+
+        // ========== 第三步：從 Form Body 抓取關鍵的加密資料 ==========
+        // 檢查請求是否包含表單內容
+        if (request.HasFormContentType)
+        {
+            // 讀取表單數據
+            var form = await request.ReadFormAsync();
+            
+            // 從表單中抓取關鍵的加密資料
+            // TradeInfo：加密的交易資訊
+            command.TradeInfo = form["TradeInfo"].ToString();
+            
+            // TradeSha：交易檢查碼
+            command.TradeSha = form["TradeSha"].ToString();
+            
+            // 如果 Query String 中沒有 Status，嘗試從表單中獲取
+            // 有些版本的藍新金流會將 Status 放在表單中
+            if (string.IsNullOrEmpty(command.Status)) 
+                command.Status = form["Status"];
+        }
+
+        // ========== 第四步：透過 Mediator 分發命令 ==========
+        // Mediator 會找到對應的 Handler（NewebPayReturnCommandHandler）
+        // Handler 會執行付款返回處理並回傳結果
+        // Handler 裡已經有「若訂單 pending 則建立 Payment」的邏輯
+        await mediator.SendAsync(command);
+
+        // ========== 第五步：回傳處理結果 ==========
+        // 回傳 "1_OK"，這是藍新金流標準格式的成功回應
+        // 藍新金流會根據這個回應確認是否成功接收返回
+        // 格式必須嚴格為 "1_OK"，否則藍新金流會認為返回失敗
+        // 藍新收到 "1_OK" 才會停止發送通知
+        return Results.Ok("1_OK");
     }
 }
