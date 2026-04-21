@@ -86,11 +86,7 @@ public class NewebPayReturnCommandHandler : IRequestHandler<NewebPayReturnComman
             PropertyNameCaseInsensitive = true 
         });
 
-
-        // Console log 所有欄位
-        Console.WriteLine("=== NewebPayConfirmedModel ===");
-        Console.WriteLine($"Status: {callbackData.Status}");
-        Console.WriteLine($"Message: {callbackData.Message}");
+        if(callbackData == null) throw Failure.BadRequest("解密後的資料格式錯誤，無法反序列化");
 
         if (callbackData.Result != null)
         {
@@ -107,8 +103,6 @@ public class NewebPayReturnCommandHandler : IRequestHandler<NewebPayReturnComman
             Console.WriteLine($"ExpireDate: {callbackData.Result.ExpireDate}");
         }
 
-
-        if(callbackData == null) throw Failure.BadRequest("解密後的資料格式錯誤，無法反序列化");
 
         // ============================================================
         // 核心邏輯開始：處理訂單與付款記錄
