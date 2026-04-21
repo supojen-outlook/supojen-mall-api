@@ -1,7 +1,6 @@
 using Manian.Application.Commands.NewebPay;
 using Manian.Application.Models.NewebPay;
 using Microsoft.AspNetCore.Mvc;
-using Po.Api.Response;
 using Shared.Mediator.Interface;
 
 namespace Manian.Presentation.Endpoints.Orders;
@@ -148,6 +147,48 @@ public static class PaymentEndpoint
         .Produces(StatusCodes.Status400BadRequest)
         .AllowAnonymous()
         .DisableAntiforgery();
+
+        // =========================================================================
+        // GET /api/payment/return - 藍新金流付款返回
+        // =========================================================================
+
+        // 定義 GET 端點，路由為 /api/payment/return
+        app.MapGet("/api/payment/return", HandlePaymentReturnAsync)
+
+        // 設定端點摘要，顯示在 Swagger UI 中
+        .WithSummary("藍新金流付款返回")
+
+        // 設定端點描述，提供詳細的使用說明
+        .WithDescription(@"
+            接收藍新金流平台的付款返回請求
+            
+            查詢參數：
+            - MerchantOrderNo：訂單編號（必填）
+            - TradeNo：藍新交易序號（必填）
+            - Status：付款狀態（必填）
+            - Amt：付款金額（必填）
+            
+            回傳格式：
+            - 302 Redirect：導向不同頁面
+            
+            使用範例：
+            - GET /api/payment/return?MerchantOrderNo=ORD20240101001&TradeNo=240101001&Status=SUCCESS&Amt=1000
+            
+            說明：
+            - 這是使用者從藍新金流付款頁面返回的端點
+            - 會根據訂單狀態導向不同頁面
+            - 訂單不存在：導向 /shop/checkout/notfound
+            - 訂單已付款：導向 /shop/checkout/success
+            - 訂單處理中：導向 /shop/checkout/processing
+        ")
+
+        // 設定端點標籤，用於 Swagger UI 分組
+        .WithTags("訂單管理")
+
+        // 產生 OpenAPI 回應定義
+        .Produces(StatusCodes.Status302Found)
+        .Produces(StatusCodes.Status404NotFound);
+
     }
 
     // =========================================================================
@@ -287,4 +328,84 @@ public static class PaymentEndpoint
         return Results.Ok("1|OK");
     }
 
+    /// <summary>
+    /// 處理藍新金流付款返回的私有方法
+    /// 
+    /// 職責：
+    /// - 接收藍新金流付款返回的請求
+    /// - 查詢訂單狀態
+    /// - 根據訂單狀態導向不同頁面
+    /// 
+    /// 設計考量：
+    /// - 使用 Mediator 分發查詢請求
+    /// - 根據訂單狀態導向不同頁面
+    /// - 提供友好的使用者體驗
+    /// 
+    /// 執行流程：
+    /// 1. 透過 Mediator 分發查詢請求
+    /// 2. 檢查訂單是否存在
+    /// 3. 根據訂單狀態導向不同頁面
+    /// 
+    /// 錯誤處理：
+    /// - 訂單不存在：導向 /shop/checkout/notfound
+    /// - 訂單已付款：導向 /shop/checkout/success
+    /// - 訂單處理中：導向 /shop/checkout/processing
+    /// 
+    /// 使用場景：
+    /// - 使用者在藍新金流付款頁面完成付款後返回
+    /// - 使用者在藍新金流付款頁面取消付款後返回
+    /// - 藍新金流自動返回（如付款超時）
+    /// </summary>
+    /// <param name="mediator">Mediator 服務，用於分發查詢請求</param>
+    /// <param name="command">藍新金流返回命令物件，包含 MerchantOrderNo 等參數</param>
+    /// <returns>
+    /// IResult：ASP.NET Core 的結果物件
+    /// - 302 Redirect：導向不同頁面
+    /// </returns>
+    public static async Task<IResult> HandlePaymentReturnAsync(
+        HttpRequest request,
+        [FromServices] IMediator mediator)
+    {
+        // 建立 Command 實例
+        var command = new NewebPayReturnCommand
+        {
+            // 1. 優先從 Query String 抓取 (自動綁定)
+            Status = request.Query["Status"],
+            MerchantID = request.Query["MerchantID"]
+        };
+
+        // 2. 如果有 Form Body，從 Body 補齊加密參數
+        if (request.HasFormContentType)
+        {
+            var form = await request.ReadFormAsync();
+            command.TradeInfo = form["TradeInfo"].ToString() ?? command.TradeInfo;
+            command.TradeSha = form["TradeSha"].ToString() ?? command.TradeSha;
+            // 有些版本 Status 也会放在 Form
+            if (string.IsNullOrEmpty(command.Status)) command.Status = form["Status"];
+        }
+
+        // 執行你的 Handler
+        var order = await mediator.SendAsync(command);
+
+        // ========== 第二步：檢查訂單是否存在 ==========
+        if(order == null)
+        {
+            // 如果訂單不存在，導向找不到頁面
+            return Results.Redirect("/shop/checkout/notfound");
+        }
+        else
+        {
+            // ========== 第三步：根據訂單狀態導向不同頁面 ==========
+            if(order.Status == "paid")
+            {
+                // 如果訂單已付款，導向成功頁面
+                return Results.Redirect($"/shop/checkout/success?orderNo={order.OrderNumber}");
+            }
+            else
+            {
+                // 如果訂單處理中，導向處理中頁面
+                return Results.Redirect($"/shop/checkout/processing?orderNo={order.OrderNumber}");
+            }
+        }
+    }
 }
