@@ -144,7 +144,8 @@ public static class PaymentEndpoint
         
         // 產生 OpenAPI 回應定義
         .Produces(StatusCodes.Status200OK)
-        .Produces(StatusCodes.Status400BadRequest);
+        .Produces(StatusCodes.Status400BadRequest)
+        .AllowAnonymous();
     }
 
     // =========================================================================
