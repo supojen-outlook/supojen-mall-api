@@ -118,7 +118,7 @@ public class NewebPayReturnCommandHandler : IRequestHandler<NewebPayReturnComman
                 },
                 CreatedAt = DateTimeOffset.UtcNow,
                 // 這裡可以把藍新的 BankCode 或 CodeNo 存入 Payment 的備註或擴展欄位
-                // 例如：payment.ExternalCode = r.CodeNo; 
+                // 例如：payment.ExternalCode = r.CodeNo;
             };
 
             _orderRepository.AddPayment(payment);
