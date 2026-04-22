@@ -221,7 +221,7 @@ public class PaymentQueryHandler : IRequestHandler<PaymentQuery, Payment?>
         // 注意：這裡的邏輯是「過期日期大於今天」表示已過期
         // 這與常見的「過期日期小於今天」表示已過期不同
         // 可能是業務邏輯的特殊需求，或是程式碼需要修正
-        if (payment.ExpiredAt.HasValue && payment.ExpiredAt > DateOnly.FromDateTime(DateTime.Today))
+        if (payment.ExpiredAt.HasValue && payment.ExpiredAt < DateOnly.FromDateTime(DateTime.Today))
         {
             // ========== 第四步：刪除過期的付款記錄 ==========
             // 使用 IOrderRepository.DeletePayment() 標記付款記錄為待刪除
