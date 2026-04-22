@@ -133,7 +133,8 @@ public class NewebPayReturnCommandHandler : IRequestHandler<NewebPayReturnComman
         if (order == null) throw Failure.BadRequest("訂單不存在");
 
         // 2. 如果訂單還不是 paid (代表這是取號成功，或是 Notify 還沒到)
-        if (order.Status == "created")
+        if (order.Status == "created" && 
+            (r.PaymentType == "VACC" || r.PaymentType == "CVS"))
         {
             Console.WriteLine("++++++++++++++++");
             Console.WriteLine($"PaymentType = {r.PaymentType}");
