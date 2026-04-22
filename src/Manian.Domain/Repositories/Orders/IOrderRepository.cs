@@ -259,6 +259,26 @@ public interface IOrderRepository : IRepository<Order>
     /// <param name="payment">要新增的付款記錄實體</param>
     void AddPayment(Payment payment);
 
+    /// <summary>
+    /// 刪除付款記錄
+    /// 
+    /// 職責：
+    /// - 從資料庫刪除指定付款記錄
+    /// 
+    /// 設計考量：
+    /// - 使用 EF Core 的變更追蹤機制
+    /// - 不立即寫入資料庫，由 SaveChangeAsync 統一處理
+    /// 
+    /// 使用場景：
+    /// - 付款取消
+    /// - 退款處理
+    /// 
+    /// 注意事項：
+    /// - 必須在呼叫後執行 SaveChangeAsync 才會寫入資料庫
+    /// - 建議在刪除前驗證付款記錄的存在
+    /// </summary>
+    void DeletePayment(Payment payment);
+
     // =========================================================================
     // 物流相關方法 (Shipment Related Methods)
     // =========================================================================

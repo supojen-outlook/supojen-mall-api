@@ -435,26 +435,8 @@ public static class PaymentEndpoint
         // 執行你的 Handler
         var order = await mediator.SendAsync(command);
 
-        // ========== 第二步：檢查訂單是否存在 ==========
-        if(order == null)
-        {
-            // 如果訂單不存在，導向找不到頁面
-            return Results.Redirect("/shop/checkout/notfound");
-        }
-        else
-        {
-            // ========== 第三步：根據訂單狀態導向不同頁面 ==========
-            if(order.Status == "paid")
-            {
-                // 如果訂單已付款，導向成功頁面
-                return Results.Redirect($"/shop/checkout/success?orderNo={order.OrderNumber}");
-            }
-            else
-            {
-                // 如果訂單處理中，導向處理中頁面
-                return Results.Redirect($"/shop/checkout/processing?orderNo={order.OrderNumber}");
-            }
-        }
+        // 根據訂單狀態導向不同頁面
+        return Results.Redirect($"/shop/checkout?orderId={order.OrderNumber}");
     }
 
     /// <summary>
@@ -537,13 +519,10 @@ public static class PaymentEndpoint
         // Mediator 會找到對應的 Handler（NewebPayReturnCommandHandler）
         // Handler 會執行付款返回處理並回傳結果
         // Handler 裡已經有「若訂單 pending 則建立 Payment」的邏輯
-        await mediator.SendAsync(command);
+        var order = await mediator.SendAsync(command);
 
         // ========== 第五步：回傳處理結果 ==========
-        // 回傳 "1_OK"，這是藍新金流標準格式的成功回應
-        // 藍新金流會根據這個回應確認是否成功接收返回
-        // 格式必須嚴格為 "1_OK"，否則藍新金流會認為返回失敗
-        // 藍新收到 "1_OK" 才會停止發送通知
-        return Results.Ok("1_OK");
+        // 導回前端付款資訊頁面
+        return Results.Redirect($"/shop/checkout?orderId={order.OrderNumber}");
     }
 }

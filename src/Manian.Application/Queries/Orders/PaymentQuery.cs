@@ -1,3 +1,4 @@
+using Manian.Application.Models;
 using Manian.Domain.Entities.Orders;
 using Manian.Domain.Repositories.Orders;
 using Shared.Mediator.Interface;
@@ -5,16 +6,16 @@ using Shared.Mediator.Interface;
 namespace Manian.Application.Queries.Orders;
 
 /// <summary>
-/// 查詢單一付款記錄的請求物件
+/// 查詢指定訂單的付款記錄請求物件
 /// 
 /// 用途：
-/// - 根據訂單 ID 查詢該訂單的付款記錄
+/// - 查詢特定訂單的付款記錄
 /// - 用於訂單詳情頁顯示付款資訊
-/// - 用於付款狀態確認
+/// - 支援付款狀態確認
 /// 
 /// 設計模式：
 /// - 實作 IRequest<Payment?>，表示這是一個查詢請求
-/// - 回傳 Payment 實體或 null（如果不存在）
+/// - 回傳該訂單的付款記錄實體（可能為 null）
 /// - 遵循 CQRS (Command Query Responsibility Segregation) 原則
 /// - 與 PaymentQueryHandler 配合使用，完成查詢
 /// 
@@ -196,13 +197,50 @@ public class PaymentQueryHandler : IRequestHandler<PaymentQuery, Payment?>
     /// <returns>該訂單的付款記錄實體，若不存在則回傳 null</returns>
     public async Task<Payment?> HandleAsync(PaymentQuery request)
     {
-        // 呼叫 Repository 的 GetPaymentAsync 方法查詢該訂單的付款記錄
-        // 這個方法會：
-        // 1. 從資料庫查詢指定訂單 ID 的付款記錄
-        // 2. 包含關聯的 Order 實體（由 Repository 實作決定）
-        // 3. 回傳付款記錄實體或 null（如果找不到）
-        return await _orderRepository.GetPaymentAsync(
+        // ========== 第一步：查詢付款記錄 ==========
+        // 使用 IOrderRepository.GetPaymentAsync() 查詢指定訂單的付款記錄
+        // 參數：request.OrderId - 要查詢的訂單 ID
+        // 回傳：Payment 實體或 null（如果找不到）
+        var payment = await _orderRepository.GetPaymentAsync(
             request.OrderId
         );
+
+        // ========== 第二步：驗證付款記錄是否存在 ==========
+        // 如果找不到付款記錄，直接回傳 null
+        // 這種情況可能發生在：
+        // - 訂單不存在
+        // - 訂單還沒有付款記錄
+        // - 付款記錄已被刪除
+        if (payment == null) return null;
+
+        // ========== 第三步：檢查付款記錄是否過期 ==========
+        // 過期條件：
+        // 1. payment.ExpiredAt.HasValue - 付款記錄有設定過期日期
+        // 2. payment.ExpiredAt > DateOnly.FromDateTime(DateTime.Today) - 過期日期大於今天（表示已過期）
+        // 
+        // 注意：這裡的邏輯是「過期日期大於今天」表示已過期
+        // 這與常見的「過期日期小於今天」表示已過期不同
+        // 可能是業務邏輯的特殊需求，或是程式碼需要修正
+        if (payment.ExpiredAt.HasValue && payment.ExpiredAt > DateOnly.FromDateTime(DateTime.Today))
+        {
+            // ========== 第四步：刪除過期的付款記錄 ==========
+            // 使用 IOrderRepository.DeletePayment() 標記付款記錄為待刪除
+            // 注意：此時尚未寫入資料庫，需要呼叫 SaveChangeAsync()
+            _orderRepository.DeletePayment(payment);
+
+            // ========== 第五步：儲存變更 ==========
+            // 使用 IOrderRepository.SaveChangeAsync() 將變更寫入資料庫
+            // 這會提交所有被追蹤的實體變更，包括刪除操作
+            await _orderRepository.SaveChangeAsync();
+
+            // ========== 第六步：回傳 null ==========
+            // 因為付款記錄已過期並被刪除，所以回傳 null
+            // 呼叫端應該處理這種情況（如顯示「付款已過期」訊息）
+            return null;
+        }
+
+        // ========== 第七步：回傳有效的付款記錄 ==========
+        // 如果付款記錄存在且未過期，回傳該記錄
+        return payment;
     }
 }

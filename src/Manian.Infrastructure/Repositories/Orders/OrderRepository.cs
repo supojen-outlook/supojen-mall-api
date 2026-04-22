@@ -402,6 +402,41 @@ public class OrderRepository : Repository<Order>, IOrderRepository
         paymentSet.Add(payment);
     }
 
+        /// <summary>
+        /// 刪除付款記錄
+        /// 
+        /// 職責：
+        /// - 從資料庫刪除指定付款記錄
+        /// 
+        /// 設計考量：
+        /// - 使用 EF Core 的變更追蹤機制
+        /// - 不立即寫入資料庫，由 SaveChangeAsync 統一處理
+        /// 
+        /// 使用場景：
+        /// - 付款取消
+        /// - 退款處理
+        /// 
+        /// 注意事項：
+        /// - 必須在呼叫後執行 SaveChangeAsync 才會寫入資料庫
+        /// - 建議在刪除前驗證付款記錄的存在
+        /// </summary>
+        public void DeletePayment(Payment payment)
+        {
+            // ========== 第一步：取得 Payment 的 DbSet ==========
+            // context.Set<Payment>() 取得 Payment 實體的 DbSet
+            var paymentSet = context.Set<Payment>();
+
+            // ========== 第二步：將付款記錄標記為待刪除 ==========
+            // if(payment != null) 檢查實體是否存在
+            // 這是一種防禦性編程，避免對 null 執行操作
+            // 
+            // paymentSet.Remove(payment) 將實體標記為 Deleted
+            // EF Core 會追蹤這個實體的狀態為 Deleted
+            // 注意：此時尚未寫入資料庫，需要呼叫 SaveChangeAsync() 才會實際執行 DELETE
+            // 這種設計允許在同一個工作單元中刪除多筆資料後再一起送出
+            if(payment != null) paymentSet.Remove(payment);  
+        }
+
     /// <summary>
     /// 查詢指定訂單項目的物流記錄
     /// 

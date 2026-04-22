@@ -287,6 +287,9 @@ public class NewebPayCreateHandler : IRequestHandler<NewebPayCreateCommand, Newe
             
             // 時間戳記：目前時間的 Unix 時間戳（秒）
             { "TimeStamp", DateTimeOffset.Now.ToUnixTimeSeconds().ToString() },
+
+            // 設定繳費期限，例如設定 3 天後過期
+            { "ExpireDate", DateTime.Now.AddDays(2).ToString("yyyyMMdd") },
             
             // 版本：固定為 2.0
             { "Version", "2.0" },

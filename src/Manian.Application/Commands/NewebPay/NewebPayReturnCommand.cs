@@ -1,4 +1,3 @@
-using System;
 using System.Text.Json;
 using Manian.Application.Models.NewebPay;
 using Manian.Application.Services;
@@ -10,7 +9,7 @@ using Shared.Mediator.Interface;
 
 namespace Manian.Application.Commands.NewebPay;
 
-public class NewebPayReturnCommand : IRequest<Order?> 
+public class NewebPayReturnCommand : IRequest<Order> 
 {
     /// <summary>
     /// 藍新回傳狀態碼 (例如: SUCCESS)
@@ -39,7 +38,7 @@ public class NewebPayReturnCommand : IRequest<Order?>
 }
 
 
-public class NewebPayReturnCommandHandler : IRequestHandler<NewebPayReturnCommand, Order?>
+public class NewebPayReturnCommandHandler : IRequestHandler<NewebPayReturnCommand, Order>
 {
     private readonly IOrderRepository _orderRepository;
     private readonly INewebPayService _newebPayService;
@@ -55,7 +54,7 @@ public class NewebPayReturnCommandHandler : IRequestHandler<NewebPayReturnComman
         _uniqueIdentifier = uniqueIdentifier;
     }
 
-    public async Task<Order?> HandleAsync(NewebPayReturnCommand request)
+    public async Task<Order> HandleAsync(NewebPayReturnCommand request)
     {
         // ========== 第一步：驗證 TradeInfo 是否存在 (保持不變) ==========
         if (string.IsNullOrEmpty(request.TradeInfo)) 
@@ -89,25 +88,25 @@ public class NewebPayReturnCommandHandler : IRequestHandler<NewebPayReturnComman
         if(callbackData == null) throw Failure.BadRequest("解密後的資料格式錯誤，無法反序列化");
 
 
-    // Console log 所有欄位
-    Console.WriteLine("=== NewebPayConfirmedModel ===");
-    Console.WriteLine($"Status: {callbackData.Status}");
-    Console.WriteLine($"Message: {callbackData.Message}");
+        //// Console log 所有欄位
+        //Console.WriteLine("=== NewebPayConfirmedModel ===");
+        //Console.WriteLine($"Status: {callbackData.Status}");
+        //Console.WriteLine($"Message: {callbackData.Message}");
 
-    if (callbackData.Result != null)
-    {
-        Console.WriteLine("=== Result ===");
-        Console.WriteLine($"MerchantID: {callbackData.Result.MerchantID}");
-        Console.WriteLine($"MerchantOrderNo: {callbackData.Result.MerchantOrderNo}");
-        Console.WriteLine($"TradeNo: {callbackData.Result.TradeNo}");
-        Console.WriteLine($"Amt: {callbackData.Result.Amt}");
-        Console.WriteLine($"PayTime: {callbackData.Result.PayTime}");
-        Console.WriteLine($"PaymentType: {callbackData.Result.PaymentType}");
-        Console.WriteLine($"RespondType: {callbackData.Result.RespondType}");
-        Console.WriteLine($"BankCode: {callbackData.Result.BankCode}");
-        Console.WriteLine($"CodeNo: {callbackData.Result.CodeNo}");
-        Console.WriteLine($"ExpireDate: {callbackData.Result.ExpireDate}");
-    }
+        //if (callbackData.Result != null)
+        //{
+        //    Console.WriteLine("=== Result ===");
+        //    Console.WriteLine($"MerchantID: {callbackData.Result.MerchantID}");
+        //    Console.WriteLine($"MerchantOrderNo: {callbackData.Result.MerchantOrderNo}");
+        //    Console.WriteLine($"TradeNo: {callbackData.Result.TradeNo}");
+        //    Console.WriteLine($"Amt: {callbackData.Result.Amt}");
+        //    Console.WriteLine($"PayTime: {callbackData.Result.PayTime}");
+        //    Console.WriteLine($"PaymentType: {callbackData.Result.PaymentType}");
+        //    Console.WriteLine($"RespondType: {callbackData.Result.RespondType}");
+        //    Console.WriteLine($"BankCode: {callbackData.Result.BankCode}");
+        //    Console.WriteLine($"CodeNo: {callbackData.Result.CodeNo}");
+        //    Console.WriteLine($"ExpireDate: {callbackData.Result.ExpireDate}");
+        //}
 
 
 
@@ -120,10 +119,10 @@ public class NewebPayReturnCommandHandler : IRequestHandler<NewebPayReturnComman
         var order = await _orderRepository.GetAsync(
             q => q.Where(o => o.OrderNumber == r.MerchantOrderNo)
         );
-        if (order == null) return order;
+        if (order == null) throw Failure.BadRequest("訂單不存在");
 
         // 2. 如果訂單還不是 paid (代表這是取號成功，或是 Notify 還沒到)
-        if (order.Status == "pending")
+        if (order.Status == "created")
         {
             var payment = new Payment()
             {
@@ -137,17 +136,18 @@ public class NewebPayReturnCommandHandler : IRequestHandler<NewebPayReturnComman
                     "TAIWANPAY" => "taiwan_pay",
                     "VACC"      => "atm_virtual",
                     "CREDIT"    => "credit_card_one_time",
-                    _           => "cash"
+                    "CVS"       => "cvs", 
+                    _           => "other"
                 },
                 CreatedAt = DateTimeOffset.UtcNow,
-                // 這裡可以把藍新的 BankCode 或 CodeNo 存入 Payment 的備註或擴展欄位
-                // 例如：payment.ExternalCode = r.CodeNo;
+                BankCode = r.BankCode,
+                CodeNo = r.CodeNo,
+                ExpiredAt = r.ExpireDate != null ? DateOnly.Parse(r.ExpireDate) : null,
             };
 
             _orderRepository.AddPayment(payment);
             await _orderRepository.SaveChangeAsync();
         }
-
 
         return order;
     }

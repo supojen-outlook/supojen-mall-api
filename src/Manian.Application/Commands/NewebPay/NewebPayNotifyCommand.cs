@@ -361,7 +361,8 @@ public class NewebPayNotifyCommandHandler : IRequestHandler<NewebPayNotifyComman
                             "TAIWANPAY" => "taiwan_pay",
                             "VACC"      => "atm_virtual",
                             "CREDIT"    => "credit_card_one_time",
-                            _           => "cash"
+                            "CVS"       => "cvs", 
+                            _           => "other"
                         },                                         // 設定付款方式
                         Status = "paid",                           // 設定付款狀態為已付款
                         CreatedAt = paidAt.ToUniversalTime(),      // 設定建立時間為目前 UTC 時間

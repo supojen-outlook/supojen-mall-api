@@ -80,7 +80,7 @@ public class Payment : IEntity, IDisposable
         get => _method;
         set
         {
-            if (value != "credit_card_one_time" && value != "atm_virtual" && value != "taiwan_pay" &&  value != "cash")
+            if (value != "credit_card_one_time" && value != "atm_virtual" && value != "taiwan_pay" &&  value != "cash" && value != "cvs" && value != "other")
                 throw new ArgumentException("Method 必須是有效的付款方式");
     
             _method = value;
@@ -121,6 +121,25 @@ public class Payment : IEntity, IDisposable
         }
     }
 
+    // =========================================================================
+    // 銀行資訊 (Bank Information) 或是 超商資訊 (Convenience Store Information)
+    // =========================================================================
+
+    /// <summary>
+    /// 銀行代碼
+    /// </summary>
+    public string? BankCode { get; set; }
+
+    /// <summary>
+    /// 銀行帳號或是超商代碼
+    /// </summary>
+    public string? CodeNo { get; set; }
+
+    /// <summary>
+    /// (ATM匯款)超商繳費期限
+    /// </summary>
+    public DateOnly? ExpiredAt { get; set; }
+    
     // =========================================================================
     // 付款狀態 (Payment Status)
     // =========================================================================
