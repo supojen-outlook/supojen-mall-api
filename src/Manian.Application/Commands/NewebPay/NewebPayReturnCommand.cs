@@ -135,6 +135,10 @@ public class NewebPayReturnCommandHandler : IRequestHandler<NewebPayReturnComman
         // 2. 如果訂單還不是 paid (代表這是取號成功，或是 Notify 還沒到)
         if (order.Status == "created")
         {
+            Console.WriteLine("++++++++++++++++");
+            Console.WriteLine($"PaymentType = {r.PaymentType}");
+            Console.WriteLine($"ExpireDate = {r.ExpireDate}");
+
             var payment = new Payment()
             {
                 Id = _uniqueIdentifier.NextInt(),

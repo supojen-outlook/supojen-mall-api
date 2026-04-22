@@ -348,7 +348,6 @@ public class NewebPayNotifyCommandHandler : IRequestHandler<NewebPayNotifyComman
             {
                 var payment = await _orderRepository.GetPaymentAsync(order.Id);
 
-
                 if (payment == null)
                 {
                     payment = new Payment()
@@ -395,7 +394,7 @@ public class NewebPayNotifyCommandHandler : IRequestHandler<NewebPayNotifyComman
             else
             {
                 // 解析失敗
-                throw Failure.BadRequest("更新付款資訊失敗");                
+                throw Failure.BadRequest("付款沒成功");                
             }
         }
         else
