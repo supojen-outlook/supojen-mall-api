@@ -146,7 +146,10 @@ public class NewebPayReturnCommandHandler : IRequestHandler<NewebPayReturnComman
             };
 
             _orderRepository.AddPayment(payment);
+
             await _orderRepository.SaveChangeAsync();
+
+            Console.WriteLine($"============= chekpoint =================");
         }
 
         return order;
