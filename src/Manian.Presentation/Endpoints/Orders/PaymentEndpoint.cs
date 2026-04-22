@@ -436,7 +436,7 @@ public static class PaymentEndpoint
         var order = await mediator.SendAsync(command);
 
         // 根據訂單狀態導向不同頁面
-        return Results.Redirect($"/shop/checkout?orderId={order.OrderNumber}");
+        return Results.Redirect($"/shop/checkout?orderId={order.Id}");
     }
 
     /// <summary>
@@ -523,6 +523,6 @@ public static class PaymentEndpoint
 
         // ========== 第五步：回傳處理結果 ==========
         // 導回前端付款資訊頁面
-        return Results.Redirect($"/shop/checkout?orderId={order.OrderNumber}");
+        return Results.Redirect($"/shop/checkout?orderId={order.Id}");
     }
 }
