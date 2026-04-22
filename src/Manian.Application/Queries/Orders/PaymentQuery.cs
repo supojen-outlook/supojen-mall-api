@@ -216,7 +216,7 @@ public class PaymentQueryHandler : IRequestHandler<PaymentQuery, Payment?>
         // ========== 第三步：檢查付款記錄是否過期 ==========
         // 過期條件：
         // 1. payment.ExpiredAt.HasValue - 付款記錄有設定過期日期
-        // 2. payment.ExpiredAt > DateOnly.FromDateTime(DateTime.Today) - 過期日期大於今天（表示已過期）
+        // 2. payment.ExpiredAt > DateOnly.FromDateTimeDateTime.Today) - 過期日期大於今天（表示已過期）
         // 
         // 注意：這裡的邏輯是「過期日期大於今天」表示已過期
         // 這與常見的「過期日期小於今天」表示已過期不同

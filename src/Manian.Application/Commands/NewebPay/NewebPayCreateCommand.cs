@@ -295,7 +295,7 @@ public class NewebPayCreateHandler : IRequestHandler<NewebPayCreateCommand, Newe
             { "Version", "2.0" },
             
             // 商店訂單編號：使用系統的訂單編號
-            { "MerchantOrderNo", order.OrderNumber },
+            { "MerchantOrderNo", $"{order.OrderNumber}_{DateTime.Now.Ticks % 100000}" },
             
             // 付款金額：從訂單讀取，確保金額正確
             { "Amt", ((int)order.TotalAmount).ToString() },

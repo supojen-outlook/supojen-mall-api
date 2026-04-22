@@ -306,7 +306,7 @@ public class NewebPayNotifyCommandHandler : IRequestHandler<NewebPayNotifyComman
             var r = callbackData.Result;
 
             // 訂單編號（系統的訂單編號）
-            string myOrderId = r.MerchantOrderNo;
+            string myOrderId = r.MerchantOrderNo.Split('_')[0];
             
             // 藍新交易序號（藍新平台的交易編號）
             string systemTradeNo = r.TradeNo;

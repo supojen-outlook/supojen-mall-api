@@ -749,9 +749,9 @@ internal class OrderAddHandler : IRequestHandler<OrderAddCommand, Order>
             // 設定使用者 ID
             UserId = userId,
             
-            // 設定訂單編號（格式：ORD-YYYYMMDD-XXXXXX）
+            // 設定訂單編號（格式：YYMMDDX1234567890）
             // 使用當前 UTC 時間的日期部分和隨機 6 位數字
-            OrderNumber = $"ORD_{DateTimeOffset.UtcNow:yyyyMMdd}_{_uniqueIdentifier.NextInt():D6}",
+            OrderNumber = $"{DateTimeOffset.UtcNow:yyMMdd}{_uniqueIdentifier.NextInt():D6}",
             
             // 設定折扣金額（促銷折扣 + 優惠券折扣）
             DiscountAmount = discountAmount + couponDiscountAmount,

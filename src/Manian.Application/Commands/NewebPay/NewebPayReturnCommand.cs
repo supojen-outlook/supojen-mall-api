@@ -62,7 +62,7 @@ public class NewebPayReturnCommandHandler : IRequestHandler<NewebPayReturnComman
         Console.WriteLine($"TradeInfo: {request.TradeInfo}");
         Console.WriteLine($"TradeSha: {request.TradeSha}");
         Console.WriteLine($"Version: {request.Version}");
-        
+
 
 
         // ========== 第一步：驗證 TradeInfo 是否存在 (保持不變) ==========
@@ -124,9 +124,11 @@ public class NewebPayReturnCommandHandler : IRequestHandler<NewebPayReturnComman
         // ============================================================
         var r = callbackData.Result;
         
+        var orderId = r.MerchantOrderNo.Split('_')[0];
+
         // 1. 查詢訂單
         var order = await _orderRepository.GetAsync(
-            q => q.Where(o => o.OrderNumber == r.MerchantOrderNo)
+            q => q.Where(o => o.OrderNumber == orderId)
         );
         if (order == null) throw Failure.BadRequest("訂單不存在");
 
