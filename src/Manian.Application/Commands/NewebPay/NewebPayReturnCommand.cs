@@ -139,6 +139,12 @@ public class NewebPayReturnCommandHandler : IRequestHandler<NewebPayReturnComman
             Console.WriteLine($"PaymentType = {r.PaymentType}");
             Console.WriteLine($"ExpireDate = {r.ExpireDate}");
 
+            DateOnly? expireAt = null;
+            if(DateOnly.TryParse(r.ExpireDate, out var expireDate))
+            {
+                expireAt = expireDate;
+            }
+
             var payment = new Payment()
             {
                 Id = _uniqueIdentifier.NextInt(),
@@ -157,7 +163,7 @@ public class NewebPayReturnCommandHandler : IRequestHandler<NewebPayReturnComman
                 CreatedAt = DateTimeOffset.UtcNow,
                 BankCode = r.BankCode,
                 CodeNo = r.CodeNo,
-                ExpiredAt = r.ExpireDate != null ? DateOnly.Parse(r.ExpireDate) : null,
+                ExpiredAt = expireAt,
             };
 
             _orderRepository.AddPayment(payment);
