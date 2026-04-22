@@ -56,6 +56,15 @@ public class NewebPayReturnCommandHandler : IRequestHandler<NewebPayReturnComman
 
     public async Task<Order> HandleAsync(NewebPayReturnCommand request)
     {
+        Console.WriteLine("=== NewebPayReturnCommand ===");
+        Console.WriteLine($"Status: {request.Status}");
+        Console.WriteLine($"MerchantID: {request.MerchantID}");
+        Console.WriteLine($"TradeInfo: {request.TradeInfo}");
+        Console.WriteLine($"TradeSha: {request.TradeSha}");
+        Console.WriteLine($"Version: {request.Version}");
+        
+
+
         // ========== 第一步：驗證 TradeInfo 是否存在 (保持不變) ==========
         if (string.IsNullOrEmpty(request.TradeInfo)) 
             throw Failure.BadRequest("TradeInfo is required");

@@ -487,13 +487,14 @@ public static class PaymentEndpoint
         // ========== 第一步：建立 Command 實例 ==========
         // 建立一個 NewebPayReturnCommand 實例
         // 這個實例將用於封裝從藍新金流接收到的所有參數
-        var command = new NewebPayReturnCommand();
-
-        // ========== 第二步：從 Query String 抓取基本欄位 ==========
-        // 優先從 Query String 抓取基本欄位
-        // 這些欄位通常會在 URL 的查詢字串中
-        command.Status = request.Query["Status"];
-        command.MerchantID = request.Query["MerchantID"];
+        var command = new NewebPayReturnCommand
+        {
+            // ========== 第二步：從 Query String 抓取基本欄位 ==========
+            // 優先從 Query String 抓取基本欄位
+            // 這些欄位通常會在 URL 的查詢字串中
+            Status = request.Query["Status"],
+            MerchantID = request.Query["MerchantID"]
+        };
 
         // ========== 第三步：從 Form Body 抓取關鍵的加密資料 ==========
         // 檢查請求是否包含表單內容
