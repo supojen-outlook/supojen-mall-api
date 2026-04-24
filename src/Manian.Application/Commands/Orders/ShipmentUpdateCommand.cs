@@ -515,7 +515,7 @@ internal class ShipmentUpdateHandler : IRequestHandler<ShipmentUpdateCommand, Sh
 
         // ========== 第六步：處理出貨邏輯 ==========
         // 如果提供了出貨日期，執行出貨流程
-        if (request.ShipDate != null)
+        if (request.ShipDate != null && shipment.ShipDate == null)
         {
             if(request.TrackingNumber == null)
                 throw Failure.BadRequest("追蹤編號不可為空");
@@ -552,22 +552,16 @@ internal class ShipmentUpdateHandler : IRequestHandler<ShipmentUpdateCommand, Sh
                     throw Failure.NotFound($"庫存不存在，庫存 ID: {item.InventoryId}");
 
                 // 扣減可用數量
-                inventory.QuantityAvailable -= item.QuantityPicked;
+                inventory.QuantityOnHand -= item.QuantityToPick;
                 
                 // 扣減預留數量
-                inventory.QuantityReserved -= item.QuantityPicked;
-
-                // 如果可用數量小於等於 0，刪除該庫存記錄
-                if(inventory.QuantityAvailable <= 0)
-                {
-                    _locationRepository.DeleteInventory(inventory);
-                }
+                inventory.QuantityReserved -= item.QuantityToPick;
             }
         }
 
         // ========== 第七步：處理到貨邏輯 ==========
         // 如果提供了到貨日期，執行到貨流程
-        if (request.DeliveredDate != null)
+        if (request.DeliveredDate != null && shipment.DeliveredDate == null)
         {
             // 更新物流記錄的到貨日期
             shipment.DeliveredDate = request.DeliveredDate;
