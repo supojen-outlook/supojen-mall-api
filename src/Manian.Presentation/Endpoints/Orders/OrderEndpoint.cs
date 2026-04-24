@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Manian.Application.Commands.Orders;
 using Manian.Application.Models;
 using Manian.Application.Queries.Orders;
@@ -229,6 +230,29 @@ public static class OrderEndpoint
             .Produces(StatusCodes.Status404NotFound)
             .Produces(StatusCodes.Status400BadRequest);
 
+        // PUT /api/orders/my-shipment - 更新我的訂單物流記錄（客戶端）
+        app.MapPut("/api/orders/my-shipment", HandleUpdateMyShipmentAsync)
+            .WithSummary("更新我的訂單物流記錄")
+            .WithDescription(@"
+                更新當前登入用戶訂單的到貨日期
+                
+                請求參數：
+                - orderId：訂單 ID（必填）
+                - deliveredDate：到貨日期（可選）
+                
+                回傳格式：
+                - 200 OK：更新成功
+                - 404 Not Found：訂單不存在
+                - 400 Bad Request：請求內容錯誤
+                
+                使用範例：
+                - PUT /api/orders/my-shipment?orderId=1001&deliveredDate=2023-12-01T10:00:00Z
+            ")
+            .WithTags("訂單管理")
+            .Produces(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound)
+            .Produces(StatusCodes.Status400BadRequest);
+
         // =========================================================================
         // 訂單命令端點 (Order Command Endpoints)
         // =========================================================================
@@ -391,6 +415,21 @@ public static class OrderEndpoint
         [FromBody] ShipmentUpdateCommand command)
     {
         await mediator.SendAsync(command);
+        return Results.Ok();
+    }
+
+    /// <summary>
+    /// 客戶處理更新物流記錄請求的私有方法
+    /// </summary>
+    private static async Task<IResult> HandleUpdateMyShipmentAsync(
+        [FromServices] IMediator mediator,
+        [FromBody]JsonElement body)
+    {        
+        await mediator.SendAsync(new ShipmentUpdateCommand()
+        {
+            OrderId = body.GetProperty("orderId").GetInt32(),
+            DeliveredDate = body.GetProperty("deliveredDate").GetDateTimeOffset()
+        });
         return Results.Ok();
     }
 

@@ -1,5 +1,6 @@
 using Manian.Domain.Entities.Orders;
 using Manian.Domain.Repositories.Orders;
+using Manian.Domain.Repositories.Warehouses;
 using Po.Api.Response;
 using Shared.Mediator.Interface;
 
@@ -13,7 +14,7 @@ namespace Manian.Application.Commands.Orders;
 /// - 作為前端與後端之間的資料傳輸物件 (DTO)
 /// 
 /// 設計模式：
-/// - 實作 IRequest<IEnumerable<Shipment>>，表示這是一個會回傳更新後實體集合的命令
+/// - 實作 IRequest<Shipment>，表示這是一個會回傳更新後實體的命令
 /// - 遵循 CQRS (Command Query Responsibility Segregation) 原則
 /// - 與 ShipmentUpdateCommandHandler 配合使用，完成更新物流記錄的業務邏輯
 /// 
@@ -22,21 +23,24 @@ namespace Manian.Application.Commands.Orders;
 /// - 物流方式變更
 /// - 物流追蹤編號更新
 /// - 物流資訊修改
+/// - 到貨日期更新
 /// 
 /// 設計特點：
 /// - 支援部分更新（PATCH 語意）
 /// - 只更新非 null 的欄位，保持 null 欄位的原值不變
 /// - 自動設定出貨日期
-/// - 批次更新訂單的所有物流記錄
+/// - 支援出貨和到貨狀態自動更新
+/// - 出貨時會自動扣減庫存
 /// 
 /// 注意事項：
 /// - 更新操作不可逆，建議在 UI 層加入確認對話框
 /// - 建議檢查物流方式是否有效
 /// - 建議檢查追蹤編號格式
+/// - 出貨時會自動扣減庫存，請確保庫存充足
 /// 
 /// 與其他命令的對比：
 /// - ShipmentAddCommand：新增物流記錄（不回傳資料）
-/// - ShipmentUpdateCommand：更新物流記錄（回傳更新後的實體集合）
+/// - ShipmentUpdateCommand：更新物流記錄（回傳更新後的實體）
 /// - ShipmentDeleteCommand：刪除物流記錄（不回傳資料）
 /// </summary>
 public class ShipmentUpdateCommand : IRequest<Shipment>
@@ -58,9 +62,8 @@ public class ShipmentUpdateCommand : IRequest<Shipment>
     /// 
     /// 資料關聯：
     /// - 根據 sql/04-order/README.md 的五表關係圖
-    /// - Order → OrderItem (1:N)
-    /// - OrderItem → Shipment (1:N)
-    /// - 此屬性用於查詢訂單的所有 OrderItem，再查詢每個 OrderItem 的 Shipment
+    /// - Order → Shipment (1:N)
+    /// - 此屬性用於查詢訂單的物流記錄
     /// </summary>
     public int OrderId { get; set; }
 
@@ -235,6 +238,91 @@ public class ShipmentUpdateCommand : IRequest<Shipment>
     /// - 此屬性用於更新 Shipment.RecipientPhone
     /// </summary>
     public string? RecipientPhone { get; set; }
+
+    /// <summary>
+    /// 出貨日期
+    /// 
+    /// 用途：
+    /// - 記錄包裹的出貨日期
+    /// - 用於計算運費和送達時間
+    /// - 提供給客戶確認出貨資訊
+    /// 
+    /// 業務邏輯：
+    /// - 如果提供此日期，會觸發出貨流程
+    /// - 更新訂單狀態為 "shipped"
+    /// - 更新揀貨項目狀態為 "shipped"
+    /// - 扣減庫存數量
+    /// 
+    /// 驗證規則：
+    /// - 可以為 null（表示不更新此欄位）
+    /// - 如果提供，應為有效的日期格式
+    /// - 建議格式：yyyy-MM-dd HH:mm:ss
+    /// 
+    /// 錯誤處理：
+    /// - 如果日期格式無效，會忽略此欄位
+    /// - 建議在 UI 層處理日期驗證
+    /// 
+    /// 使用範例：
+    /// <code>
+    /// // 更新出貨日期（觸發出貨流程）
+    /// var command = new ShipmentUpdateCommand {
+    ///     OrderId = 1001, 
+    ///     ShipDate = new DateTimeOffset(2023, 10, 1, 10, 0, 0, TimeSpan.Zero) 
+    /// };
+    /// </code>
+    /// 
+    /// 資料關聯：
+    /// - 根據 sql/04-order/README.md 的五表關係圖
+    /// - Shipment 實體包含 ShipDate 欄位
+    /// - 此屬性用於更新 Shipment.ShipDate
+    /// 
+    /// 自動設定：
+    /// - 如果 ShipDate 和 DeliveredDate 都為 null，且 Method 或 TrackingNumber 有更新，會自動設定 ShipDate 為當前日期
+    /// - 如果提供 ShipDate，會觸發出貨流程
+    /// </summary>
+    public DateTimeOffset? ShipDate { get; set; }
+
+    /// <summary>
+    /// 到貨日期
+    /// 
+    /// 用途：
+    /// - 記錄包裹的到貨日期
+    /// - 用於計算送達時間
+    /// - 提供給客戶確認到貨資訊
+    /// 
+    /// 業務邏輯：
+    /// - 如果提供此日期，會觸發到貨流程
+    /// - 更新訂單狀態為 "completed"
+    /// - 更新訂單項目狀態為 "shipped"
+    /// 
+    /// 驗證規則：
+    /// - 可以為 null（表示不更新此欄位）
+    /// - 如果提供，應為有效的日期格式
+    /// - 建議格式：yyyy-MM-dd HH:mm:ss
+    /// 
+    /// 錯誤處理：
+    /// - 如果日期格式無效，會忽略此欄位
+    /// - 建議在 UI 層處理日期驗證
+    /// 
+    /// 使用範例：
+    /// <code>
+    /// // 更新到貨日期（觸發到貨流程）
+    /// var command = new ShipmentUpdateCommand {
+    ///     OrderId = 1001, 
+    ///     DeliveredDate = new DateTimeOffset(2023, 10, 5, 10, 0, 0, TimeSpan.Zero) 
+    /// };
+    /// </code>
+    /// 
+    /// 資料關聯：
+    /// - 根據 sql/04-order/README.md 的五表關係圖
+    /// - Shipment 實體包含 DeliveredDate 欄位
+    /// - 此屬性用於更新 Shipment.DeliveredDate
+    /// 
+    /// 自動設定：
+    /// - 如果 ShipDate 和 DeliveredDate 都為 null，且 Method 或 TrackingNumber 有更新，會自動設定 ShipDate 為當前日期
+    /// - 如果提供 DeliveredDate，會觸發到貨流程
+    /// </summary>
+    public DateTimeOffset? DeliveredDate { get; set; }
 }
 
 /// <summary>
@@ -242,13 +330,14 @@ public class ShipmentUpdateCommand : IRequest<Shipment>
 /// 
 /// 職責：
 /// - 接收 ShipmentUpdateCommand 命令
-/// - 查詢訂單的所有物流記錄
+/// - 查詢物流記錄是否存在
 /// - 更新物流記錄資訊
-/// - 自動設定出貨日期
-/// - 回傳更新後的物流記錄集合
+/// - 處理出貨邏輯（更新揀貨項目、扣減庫存）
+/// - 處理到貨邏輯（更新訂單狀態）
+/// - 回傳更新後的物流記錄
 /// 
 /// 設計模式：
-/// - 實作 IRequestHandler<ShipmentUpdateCommand, IEnumerable<Shipment>> 介面
+/// - 實作 IRequestHandler<ShipmentUpdateCommand, Shipment> 介面
 /// - 遵循單一職責原則 (SRP)
 /// - 使用依賴注入 (DI) 取得所需服務
 /// 
@@ -257,12 +346,13 @@ public class ShipmentUpdateCommand : IRequest<Shipment>
 /// - 每次請求建立新實例 (Transient)
 /// 
 /// 測試性：
-/// - 可輕易 Mock IOrderRepository
+/// - 可輕易 Mock IOrderRepository 和 ILocationRepository
 /// - 邏輯清晰，方便單元測試
 /// 
 /// 潛在問題：
 /// - 未檢查物流方式是否有效
 /// - 未檢查追蹤編號格式
+/// - 未檢查庫存是否足夠
 /// - 建議在實際專案中加入這些檢查
 /// 
 /// 參考實作：
@@ -272,7 +362,7 @@ public class ShipmentUpdateCommand : IRequest<Shipment>
 /// 
 /// 與其他處理器的對比：
 /// - ShipmentAddHandler：新增物流記錄（不回傳資料）
-/// - ShipmentUpdateHandler：更新物流記錄（回傳更新後的實體集合）
+/// - ShipmentUpdateHandler：更新物流記錄（回傳更新後的實體）
 /// - ShipmentDeleteHandler：刪除物流記錄（不回傳資料）
 /// </summary>
 internal class ShipmentUpdateHandler : IRequestHandler<ShipmentUpdateCommand, Shipment>
@@ -287,7 +377,7 @@ internal class ShipmentUpdateHandler : IRequestHandler<ShipmentUpdateCommand, Sh
     /// 實作方式：
     /// - 使用 EF Core 實作（見 Infrastructure/Repositories/Orders/OrderRepository.cs）
     /// - 提供泛型方法 GetByIdAsync、SaveChangeAsync 等
-    /// - 擴展了 GetShipmentAsync、GetShipmentsAsync 等方法
+    /// - 擴展了 GetShipmentAsync、GetPickItemsByOrderAsync、GetOrderItemsAsync 等方法
     /// 
     /// 介面定義：
     /// - 見 Domain/Repositories/Orders/IOrderRepository.cs
@@ -295,34 +385,54 @@ internal class ShipmentUpdateHandler : IRequestHandler<ShipmentUpdateCommand, Sh
     private readonly IOrderRepository _repository;
 
     /// <summary>
+    /// 儲位倉儲介面
+    /// 
+    /// 用途：
+    /// - 存取庫存資料
+    /// - 提供查詢、刪除等操作
+    /// 
+    /// 實作方式：
+    /// - 使用 EF Core 實作（見 Infrastructure/Repositories/Warehouses/LocationRepository.cs）
+    /// - 提供泛型方法 GetInventoriesByLocationIdAsync、DeleteInventory 等
+    /// 
+    /// 介面定義：
+    /// - 見 Domain/Repositories/Warehouses/ILocationRepository.cs
+    /// </summary>
+    private readonly ILocationRepository _locationRepository;
+
+    /// <summary>
     /// 建構函式 - 初始化處理器並注入依賴服務
     /// </summary>
     /// <param name="repository">訂單倉儲，用於查詢和更新物流記錄</param>
-    public ShipmentUpdateHandler(IOrderRepository repository)
+    /// <param name="locationRepository">儲位倉儲，用於處理庫存扣減</param>
+    public ShipmentUpdateHandler(IOrderRepository repository, ILocationRepository locationRepository)
     {
         _repository = repository;
+        _locationRepository = locationRepository;
     }
 
     /// <summary>
     /// 處理更新物流記錄命令的主要方法
     /// 
     /// 執行流程：
-    /// 1. 根據 OrderId 查詢訂單的所有訂單項目
-    /// 2. 遍歷每個訂單項目，查詢對應的物流記錄
-    /// 3. 驗證物流記錄是否存在
+    /// 1. 根據 OrderId 查詢物流記錄
+    /// 2. 驗證物流記錄是否存在
+    /// 3. 查詢訂單資訊
     /// 4. 更新非 null 的欄位
-    /// 5. 自動設定出貨日期
-    /// 6. 儲存變更
-    /// 7. 回傳更新後的物流記錄集合
+    /// 5. 處理出貨邏輯（如果提供 ShipDate）
+    /// 6. 處理到貨邏輯（如果提供 DeliveredDate）
+    /// 7. 儲存變更
+    /// 8. 回傳更新後的實體
     /// 
     /// 錯誤處理：
-    /// - 訂單項目不存在：拋出 Failure.NotFound()
     /// - 物流記錄不存在：拋出 Failure.NotFound()
+    /// - 訂單不存在：拋出 Failure.BadRequest()
     /// 
     /// 注意事項：
     /// - 更新操作不可逆，建議在 UI 層加入確認對話框
     /// - 建議檢查物流方式是否有效
     /// - 建議檢查追蹤編號格式
+    /// - 建議檢查庫存是否足夠
     /// 
     /// 使用範例：
     /// <code>
@@ -334,56 +444,68 @@ internal class ShipmentUpdateHandler : IRequestHandler<ShipmentUpdateCommand, Sh
     ///     TrackingNumber = "TCAT123456789",
     ///     ShippingAddress = "台北市信義區信義路五段7號",
     ///     RecipientName = "張三",
-    ///     RecipientPhone = "0912-345-678"
+    ///     RecipientPhone = "0912-345-678",
+    ///     ShipDate = DateTimeOffset.UtcNow,
+    ///     DeliveredDate = null
     /// };
     /// 
     /// // 執行更新命令
-    /// var shipments = await _mediator.SendAsync(command);
+    /// var shipment = await _mediator.SendAsync(command);
     /// 
-    /// // 遍歷更新後的物流記錄
-    /// foreach (var shipment in shipments)
-    /// {
-    ///     Console.WriteLine($"物流方式：{shipment.Method}");
-    ///     Console.WriteLine($"追蹤編號：{shipment.TrackingNumber}");
-    ///     Console.WriteLine($"出貨日期：{shipment.ShipDate}");
-    /// }
+    /// // 顯示更新後的物流記錄
+    /// Console.WriteLine($"物流方式：{shipment.Method}");
+    /// Console.WriteLine($"追蹤編號：{shipment.TrackingNumber}");
+    /// Console.WriteLine($"出貨日期：{shipment.ShipDate}");
     /// </code>
     /// 
     /// 資料關聯：
     /// - 根據 sql/04-order/README.md 的五表關係圖
-    /// - Order → OrderItem (1:N)
-    /// - OrderItem → Shipment (1:N)
-    /// - 需要透過 OrderItem 找到對應的 Shipment
+    /// - Order → Shipment (1:N)
+    /// - Shipment → OrderItem (1:N)
+    /// - OrderItem → PickItem (1:N)
+    /// - PickItem → Inventory (N:1)
     /// </summary>
     /// <param name="request">更新物流記錄命令物件，包含物流記錄的所有資訊</param>
-    /// <returns>更新後的物流記錄實體集合</returns>
+    /// <returns>更新後的物流記錄實體</returns>
     public async Task<Shipment> HandleAsync(ShipmentUpdateCommand request)
     {
-
-        // ========== 第三步：根據 OrderItemId 查詢物流記錄 ==========
+        // ========== 第一步：根據 OrderId 查詢物流記錄 ==========
         // 使用 IOrderRepository.GetShipmentAsync() 查詢物流記錄
         // 這個方法會從資料庫中取得完整的物流記錄實體
-        // 注意：這裡傳入的是 OrderItemId，不是 OrderId
         var shipment = await _repository.GetShipmentAsync(request.OrderId);
         
-        // ========== 第四步：驗證物流記錄是否存在 ==========
+        // ========== 第二步：驗證物流記錄是否存在 ==========
         // 如果找不到物流記錄，拋出 404 錯誤
         // 這種情況可能發生在：
-        // - 訂單項目 ID 不存在
-        // - 訂單項目尚未建立物流記錄
+        // - 訂單 ID 不存在
+        // - 訂單尚未建立物流記錄
         if (shipment == null)
             throw Failure.NotFound($"物流記錄不存在，訂單 ID: {request.OrderId}");
 
-        // ========== 第五步：更新非 null 的欄位 ==========
+        // ========== 第三步：查詢訂單資訊 ==========
+        // 使用 IOrderRepository.GetByIdAsync() 查詢訂單
+        // 這個方法會從資料庫中取得完整的訂單實體
+        var order = await _repository.GetByIdAsync(shipment.OrderId);
+        
+        // 驗證訂單是否存在
+        if (order == null)
+            throw Failure.BadRequest("讀取訂單資訊時發生錯誤");
+
+        // ========== 第四步：更新非 null 的欄位 ==========
         // 只更新非 null 的欄位，保持 null 欄位的原值不變
         // 這種設計支援部分更新（PATCH 語意）
         if (request.Method != null) shipment.Method = request.Method;
-        if (request.TrackingNumber != null) shipment.TrackingNumber = request.TrackingNumber;
+        if (request.TrackingNumber != null) 
+        {
+            if(request.ShipDate == null)
+                throw Failure.BadRequest("出貨日期不可為空");
+            shipment.TrackingNumber = request.TrackingNumber;
+        }
         if (request.ShippingAddress != null) shipment.ShippingAddress = request.ShippingAddress;
         if (request.RecipientName != null) shipment.RecipientName = request.RecipientName;
         if (request.RecipientPhone != null) shipment.RecipientPhone = request.RecipientPhone;
 
-        // ========== 第六步：自動設定出貨日期 ==========
+        // ========== 第五步：自動設定出貨日期 ==========
         // 如果物流方式或追蹤編號有更新，自動設定出貨日期為目前時間
         // 這表示訂單已經實際出貨
         if (request.Method != null || request.TrackingNumber != null)
@@ -391,13 +513,89 @@ internal class ShipmentUpdateHandler : IRequestHandler<ShipmentUpdateCommand, Sh
             shipment.ShipDate = DateTimeOffset.UtcNow;
         }
 
-        // ========== 第七步：儲存變更 ==========
+        // ========== 第六步：處理出貨邏輯 ==========
+        // 如果提供了出貨日期，執行出貨流程
+        if (request.ShipDate != null)
+        {
+            if(request.TrackingNumber == null)
+                throw Failure.BadRequest("追蹤編號不可為空");
+
+            // 更新物流記錄的出貨日期
+            shipment.ShipDate = request.ShipDate;
+
+            // 更新訂單狀態為 "shipped"
+            order.Status = "shipped";
+            
+            // 更新訂單的出貨時間
+            order.ShippedAt = request.ShipDate;
+        
+            // 查詢訂單的所有揀貨項目
+            var pickItems = await _repository.GetPickItemsByOrderAsync(order.Id);
+            
+            // 遍歷每個揀貨項目，更新狀態和數量
+            foreach (var item in pickItems)
+            {
+                // 更新揀貨項目狀態為 "shipped"
+                item.Status = "picked";
+                
+                // 設定揀貨時間
+                item.PickedAt = request.ShipDate;
+                
+                // 設定實際揀貨數量為預計揀貨數量
+                item.QuantityPicked = item.QuantityToPick;
+
+                // 查詢該揀貨項目對應的庫存
+                var inventory = await _locationRepository.GetInventoryAsync(item.InventoryId);
+
+                // 驗證庫存是否存在
+                if (inventory == null)
+                    throw Failure.NotFound($"庫存不存在，庫存 ID: {item.InventoryId}");
+
+                // 扣減可用數量
+                inventory.QuantityAvailable -= item.QuantityPicked;
+                
+                // 扣減預留數量
+                inventory.QuantityReserved -= item.QuantityPicked;
+
+                // 如果可用數量小於等於 0，刪除該庫存記錄
+                if(inventory.QuantityAvailable <= 0)
+                {
+                    _locationRepository.DeleteInventory(inventory);
+                }
+            }
+        }
+
+        // ========== 第七步：處理到貨邏輯 ==========
+        // 如果提供了到貨日期，執行到貨流程
+        if (request.DeliveredDate != null)
+        {
+            // 更新物流記錄的到貨日期
+            shipment.DeliveredDate = request.DeliveredDate;
+
+            // 更新訂單狀態為 "completed"
+            order.Status = "completed";
+            
+            // 更新訂單的完成時間
+            order.CompletedAt = request.DeliveredDate;
+
+            // 查詢訂單的所有訂單項目
+            var orderItems = await _repository.GetOrderItemsAsync(order.Id);
+            
+            // 遍歷每個訂單項目，更新狀態
+            foreach (var item in orderItems)
+            {
+                // 更新訂單項目狀態為 "shipped"
+                item.Status = "shipped";
+            }
+        }
+
+        // ========== 第八步：儲存變更 ==========
         // 使用 IOrderRepository.SaveChangeAsync() 將變更寫入資料庫
         // 這會提交所有被追蹤的實體變更
         await _repository.SaveChangeAsync();
 
-        // ========== 第八步：回傳更新後的實體 ==========
-        // 回傳更新後的 Shipment 實體集合
+        // ========== 第九步：回傳更新後的實體 ==========
+        // 回傳更新後的 Shipment 實體
         // 包含所有更新後的屬性值
         return shipment;
     }

@@ -43,6 +43,14 @@ public class PickItem : IEntity
     public int OrderItemId { get; set; }
 
     /// <summary>
+    /// 關聯的庫存記錄 ID
+    /// 外鍵約束：fk_pick_items_inventory
+    /// 約束：刪除庫存記錄時禁止刪除揀貨項目
+    /// </summary>
+    public int InventoryId { get; set; }
+
+
+    /// <summary>
     /// 指向具體的儲位/貨架 ID
     /// 外鍵約束：fk_pick_items_location
     /// 約束：刪除儲位時禁止刪除揀貨項目

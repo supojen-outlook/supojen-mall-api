@@ -20,6 +20,7 @@ CREATE TABLE shipments (
     -- 時間戳欄位 (Timestamp Fields)
     -- -------------------------------------------------------------------------
     ship_date       TIMESTAMPTZ,                        -- 出貨日期 (Shipping date)
+    delivered_date   TIMESTAMPTZ,                       -- 到貨日期 (Delivery date)
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(), -- 記錄建立時間 (Record creation time)
 
     -- 約束條件 (Constraints)
@@ -91,6 +92,22 @@ CREATE INDEX IF NOT EXISTS idx_shipments_ship_date
     WHERE ship_date IS NOT NULL;
 
 
+-- -----------------------------------------------------------------------------
+-- 索引 4：到貨日期查詢索引（選擇性建立）
+-- 名稱：idx_shipments_delivered_date
+-- 類型：B-tree
+-- 欄位：delivered_date DESC
+-- 用途：加速依到貨日期範圍查詢，用於物流時效分析
+-- 場景：物流時效統計、到貨率分析、物流商績效評估
+-- 範例：SELECT AVG(delivered_date - ship_date) as avg_delivery_time
+--       FROM shipments 
+--       WHERE delivered_date >= '2024-01-01' AND delivered_date < '2024-02-01';
+-- 說明：部分索引只對已到貨的記錄建立，節省空間；若需分析物流時效則建議建立
+-- -----------------------------------------------------------------------------
+CREATE INDEX IF NOT EXISTS idx_shipments_delivered_date 
+    ON shipments (delivered_date DESC) 
+    WHERE delivered_date IS NOT NULL;
+
 -- =============================================================================
 -- 註解說明 (Comments)
 -- =============================================================================
@@ -103,5 +120,6 @@ COMMENT ON COLUMN shipments.tracking_number IS '物流追蹤編號';
 COMMENT ON COLUMN shipments.recipient_name IS '收件人姓名';
 COMMENT ON COLUMN shipments.recipient_phone IS '收件人電話';
 COMMENT ON COLUMN shipments.shipping_address IS '寄送地址';
+COMMENT ON COLUMN shipments.delivered_date IS '到貨日期，記錄包裹實際送達的時間';
 COMMENT ON COLUMN shipments.ship_date IS '出貨日期';
 COMMENT ON COLUMN shipments.created_at IS '記錄建立時間';

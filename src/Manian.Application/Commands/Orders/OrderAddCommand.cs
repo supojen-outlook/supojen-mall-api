@@ -1,6 +1,5 @@
 using Manian.Application.Models.Products;
 using Manian.Application.Queries.Products;
-using Manian.Application.Queries.Warehouses;
 using Manian.Application.Services;
 using Manian.Domain.Entities.Carts;
 using Manian.Domain.Entities.Orders;
@@ -1030,6 +1029,7 @@ internal class OrderAddHandler : IRequestHandler<OrderAddCommand, Order>
                         Id = _uniqueIdentifier.NextInt(),            // 產生全域唯一的揀貨項目 ID
                         OrderId = orderItem.OrderId,                 // 關聯到訂單
                         OrderItemId = orderItem.Id,                  // 關聯到訂單項目
+                        InventoryId = inventory.Id,                  // 關聯到庫存
                         LocationId = inventory.LocationId,           // 關聯到儲位
                         ProductImageUrl = orderItem.ProductImageUrl, // 設定商品圖片
                         QuantityToPick = quantityToPick,             // 設定應揀貨數量

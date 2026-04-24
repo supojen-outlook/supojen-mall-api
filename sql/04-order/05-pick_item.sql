@@ -13,6 +13,7 @@ CREATE TABLE pick_items (
     id              INT NOT NULL,           -- 揀貨項目唯一識別碼 (Unique pick item ID)
     order_id        INT NOT NULL,           -- 所屬訂單 ID (Redundant for performance)
     order_item_id   INT NOT NULL,           -- 關聯的訂單項目 ID (Reference to order_items)
+    inventory_id    INT NOT NULL,           -- 關聯到庫存記錄 ID (Reference to inventories)
     location_id     INT NOT NULL,           -- 指向具體的儲位/貨架 ID (Pick from this location)
     product_image_url VARCHAR(512),         -- 商品圖片 URL (Optional, for display purpose)
     
@@ -48,7 +49,13 @@ CREATE TABLE pick_items (
         FOREIGN KEY (order_item_id) 
         REFERENCES order_items(id) 
         ON DELETE CASCADE,
-    
+
+    -- 外鍵約束：關聯到庫存記錄，確保揀貨項目對應有效的庫存
+    CONSTRAINT fk_pick_items_inventory 
+        FOREIGN KEY (inventory_id) 
+        REFERENCES inventories(id) 
+        ON DELETE RESTRICT,        
+        
     -- 外鍵約束：關聯到儲位，確保取貨地點存在
     CONSTRAINT fk_pick_items_location 
         FOREIGN KEY (location_id) 
@@ -80,6 +87,10 @@ CREATE INDEX IF NOT EXISTS idx_pick_items_order
 CREATE INDEX IF NOT EXISTS idx_pick_items_order_item 
     ON pick_items (order_item_id);
 
+-- 索引 3：加速單一儲位的揀貨明細查詢
+CREATE INDEX IF NOT EXISTS idx_pick_items_inventory 
+    ON pick_items (inventory_id);
+
 -- =============================================================================
 -- 範例資料 (Sample Data)
 -- 場景：訂單項目 ID 為 4 的商品需要 2 件，但分散在兩個儲位
@@ -96,6 +107,7 @@ INSERT INTO pick_items (id, order_item_id, location_id, quantity_to_pick, status
 COMMENT ON TABLE pick_items IS '揀貨明細表，指引訂單商品應從哪個儲位選取';
 COMMENT ON COLUMN pick_items.order_id IS '所屬訂單 ID，方便直接按訂單查詢所有揀貨路徑';
 COMMENT ON COLUMN pick_items.order_item_id IS '關聯到 order_items，代表這筆揀貨是為了滿足哪個訂單項目';
+COMMENT ON COLUMN pick_items.inventory_id IS '關聯到 inventories，代表這筆揀貨從哪個庫存記錄扣除';
 COMMENT ON COLUMN pick_items.location_id IS '關聯到 locations，指示具體的取貨貨架/儲位';
 COMMENT ON COLUMN pick_items.product_image_url IS '商品圖片網址，用於輔助揀貨辨識';
 COMMENT ON COLUMN pick_items.quantity_to_pick IS '系統計算出的應取數量';

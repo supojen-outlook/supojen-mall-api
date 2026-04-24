@@ -1,3 +1,4 @@
+using Manian.Domain.Entities.Orders;
 using Manian.Domain.Entities.Products;
 using Manian.Domain.Entities.Warehouses;
 using Microsoft.EntityFrameworkCore;
@@ -61,12 +62,26 @@ public class InventoryConfiguration : IEntityTypeConfiguration<Inventory>
         // - LocationId 在 Inventory 實體中是必填欄位（int），所以不能設為 NULL
         // - 這是一種強制的關聯，Inventory 必須關聯到一個 Location
 
+
         // =========================================================================
         // 3. 配置與 InventoryTransaction 的關係
         // =========================================================================
+        builder.HasMany<PickItem>()             // Inventory 可以有多個 PickItem
+            .WithOne()                          // PickItem 屬於一個 Inventory
+            .HasForeignKey(p => p.InventoryId)  // 外鍵是 PickItem.InventoryId
+            .OnDelete(DeleteBehavior.Restrict); // 禁止刪除有揀貨項目的庫存
+
+        // 說明：
+        // - 使用 Restrict 防止誤刪除有揀貨項目的庫存
+        // - InventoryId 在 PickItem 實體中是必填欄位（int），所以不能設為 NULL
+        // - 這是一種一對多的關係，一個 Inventory 可以有多個 PickItem
+
+        // =========================================================================
+        // 4. 配置與 InventoryTransaction 的關係
+        // =========================================================================
         builder.HasMany<InventoryTransaction>()  // Inventory 可以有多個 InventoryTransaction
             .WithOne()                           // InventoryTransaction 屬於一個 Inventory
-            .HasForeignKey(t => t.SkuId)        // 外鍵是 InventoryTransaction.SkuId
+            .HasForeignKey(t => t.SkuId)         // 外鍵是 InventoryTransaction.SkuId
             .OnDelete(DeleteBehavior.Restrict);  // 禁止刪除有交易記錄的 Inventory
 
         // 說明：

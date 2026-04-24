@@ -128,6 +128,13 @@ public class Shipment : IEntity
     public DateTimeOffset? ShipDate { get; set; }
 
     /// <summary>
+    /// 到貨日期
+    /// 用途：記錄包裹實際送達的日期時間
+    /// </summary>
+    public DateTimeOffset? DeliveredDate { get; set; }
+
+
+    /// <summary>
     /// 記錄建立時間
     /// 預設值：NOW()
     /// </summary>
