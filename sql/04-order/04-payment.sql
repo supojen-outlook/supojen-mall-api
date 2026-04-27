@@ -123,16 +123,6 @@ CREATE INDEX IF NOT EXISTS idx_payments_status
     ON payments (status, created_at DESC);
 
 -- =============================================================================
--- 範例資料 (Sample Data)
--- =============================================================================
-
-INSERT INTO payments (id, order_id, method, transaction_id, amount, status, paid_at, snapshot) VALUES
-    (1, 2, 'credit_card_one_time', 'GATEWAY123456', 5800, 'paid', NOW(), 
-     '{"card_last4": "1234", "auth_code": "A12345"}'::JSONB),
-    (2, 3, 'atm_virtual', 'VIRTUAL123456', 3200, 'paid', NOW(),
-     '{"bank_code": "007", "account": "12345678901234"}'::JSONB);
-
--- =============================================================================
 -- 註解說明 (Comments)
 -- =============================================================================
 
@@ -141,7 +131,6 @@ COMMENT ON COLUMN payments.id IS '付款記錄唯一識別碼，主鍵';
 COMMENT ON COLUMN payments.order_id IS '訂單 ID，關聯到 orders 表';
 COMMENT ON COLUMN payments.method IS '付款方式：credit_card_one_time信用卡一次付清/credit_card_installment信用卡分期/credit_card_foreign國外卡/mobile_payment行動支付/atm_virtual虛擬帳號/webatm_taiwanpay網路ATM/cvs_code超商代碼/cvs_barcode超商條碼';
 COMMENT ON COLUMN payments.bank_code IS '付款銀行代碼';
-COMMENT ON COLUMN payments.code_no IS '付款代碼';
 COMMENT ON COLUMN payments.expired_at IS '付款代碼有效期';
 COMMENT ON COLUMN payments.transaction_id IS '金流平台交易編號';
 COMMENT ON COLUMN payments.amount IS '付款金額';

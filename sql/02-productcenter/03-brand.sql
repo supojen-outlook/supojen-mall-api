@@ -311,4 +311,3 @@ COMMENT ON COLUMN brands.description IS '品牌詳細描述';
 COMMENT ON COLUMN brands.sort_order IS '同層級間的排序順序，數字越小越前面';
 COMMENT ON COLUMN brands.status IS '狀態：active啟用，inactive停用';
 COMMENT ON COLUMN brands.created_at IS '品牌建立時間，預設為當前時間';
-COMMENT ON COLUMN brands.updated_at IS '品牌最後更新時間，由觸發器自動維護';

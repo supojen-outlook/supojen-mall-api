@@ -194,14 +194,8 @@ CREATE TRIGGER trg_locations_before_insert_update
 
 INSERT INTO locations (id, name, location_number, location_type, zone_type, parent_id, unit_of_measure_id, max_quantity, sort_order, status) VALUES
     -- 層級 1：區域 (ZONES)
-    (1, '收貨區', 'Z-RECV', 'ZONE', 'RECEIVING', NULL, 1, NULL, 100, 'active'),
     (2, '儲存區 A', 'Z-STOR-A', 'ZONE', 'STORAGE', NULL, 1, NULL, 200, 'active'),
     (3, '儲存區 B', 'Z-STOR-B', 'ZONE', 'STORAGE', NULL, 1, NULL, 210, 'active'),
-    (4, '揀貨區', 'Z-PICK', 'ZONE', 'PICKING', NULL, 1, NULL, 300, 'active'),
-    (5, '包裝區', 'Z-PACK', 'ZONE', 'PACKING', NULL, 1, NULL, 400, 'active'),
-    (6, '出貨區', 'Z-SHIP', 'ZONE', 'SHIPPING', NULL, 1, NULL, 500, 'active'),
-    (7, '品檢區', 'Z-QA', 'ZONE', 'QA', NULL, 1, NULL, 600, 'active'),
-    (8, '退貨處理區', 'Z-RET', 'ZONE', 'RETURNING', NULL, 1, NULL, 700, 'active'),
 
     -- 層級 2：儲位 (BINS) - 儲存區 A 下的儲位
     (101, 'A區-貨架01-層01', 'A01-01', 'BIN', NULL, 2, 1, 1000, 1010, 'active'),
@@ -215,12 +209,8 @@ INSERT INTO locations (id, name, location_number, location_type, zone_type, pare
     (202, 'B區-貨架01-層02', 'B01-02', 'BIN', NULL, 3, 1, 2000, 2020, 'active'),
     (203, 'B區-貨架01-層03', 'B01-03', 'BIN', NULL, 3, 1, 2000, 2030, 'active'),
     (204, 'B區-貨架02-層01', 'B02-01', 'BIN', NULL, 3, 1, 2000, 2040, 'maintenance'),  -- 維護中
-    (205, 'B區-貨架02-層02', 'B02-02', 'BIN', NULL, 3, 1, 2000, 2050, 'inactive'),      -- 停用
+    (205, 'B區-貨架02-層02', 'B02-02', 'BIN', NULL, 3, 1, 2000, 2050, 'inactive');      -- 停用
     
-    -- 層級 2：儲位 (BINS) - 揀貨區下的儲位（動線揀貨）
-    (401, '揀貨動線-01', 'PICK-01', 'BIN', NULL, 4, 1, 500, 4010, 'active'),
-    (402, '揀貨動線-02', 'PICK-02', 'BIN', NULL, 4, 1, 500, 4020, 'active');
-
 -- =============================================================================
 -- 驗證範例 (Validation Queries)
 -- =============================================================================

@@ -91,14 +91,6 @@ CREATE INDEX IF NOT EXISTS idx_pick_items_order_item
 CREATE INDEX IF NOT EXISTS idx_pick_items_inventory 
     ON pick_items (inventory_id);
 
--- =============================================================================
--- 範例資料 (Sample Data)
--- 場景：訂單項目 ID 為 4 的商品需要 2 件，但分散在兩個儲位
--- =============================================================================
-
-INSERT INTO pick_items (id, order_item_id, location_id, quantity_to_pick, status) VALUES
-    (1, 4, 101, 1, 'allocated'), -- 到 A 區貨架 01 拿 1 件
-    (2, 4, 105, 1, 'allocated'); -- 到 B 區貨架 05 拿 1 件
 
 -- =============================================================================
 -- 註解說明 (Comments)

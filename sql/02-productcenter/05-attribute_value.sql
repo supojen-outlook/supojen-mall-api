@@ -146,41 +146,6 @@ INSERT INTO attribute_values (id, attribute_id, value, description, sort_order) 
     (200604, 2006, '冬季', '適合冬季使用', 400),
     (200605, 2006, '四季通用', '全年皆可使用', 500);
 
--- =============================================================================
--- 驗證範例 (Validation Queries)
--- =============================================================================
-
-/*
--- 1. 查詢某個屬性的所有值（依序顯示）
-SELECT v.*, k.name as attribute_name
-FROM attribute_values v
-JOIN attribute_keys k ON v.attribute_id = k.id
-WHERE v.attribute_id = 1001
-ORDER BY v.sort_order;
-
--- 2. 查詢所有銷售屬性的值
-SELECT k.name as attribute_name, v.value, v.sort_order
-FROM attribute_values v
-JOIN attribute_keys k ON v.attribute_id = k.id
-WHERE k.for_sales = TRUE
-ORDER BY k.sort_order, v.sort_order;
-
--- 3. 統計每個屬性有多少個值
-SELECT 
-    k.name as attribute_name,
-    k.code,
-    COUNT(v.id) as value_count
-FROM attribute_keys k
-LEFT JOIN attribute_values v ON k.id = v.attribute_id
-GROUP BY k.id, k.name, k.code
-ORDER BY k.sort_order;
-
--- 4. 查詢特定值的詳細資訊
-SELECT v.*, k.name as attribute_name
-FROM attribute_values v
-JOIN attribute_keys k ON v.attribute_id = k.id
-WHERE v.value = '紅色' OR v.slug = 'red';
-*/
 
 -- =============================================================================
 -- 註解說明 (Comments)
@@ -190,7 +155,6 @@ COMMENT ON TABLE attribute_values IS '屬性值表，儲存屬性的具體可選
 COMMENT ON COLUMN attribute_values.id IS '屬性值唯一識別碼，主鍵';
 COMMENT ON COLUMN attribute_values.attribute_id IS '所屬屬性鍵 ID，關聯到 attribute_keys 表';
 COMMENT ON COLUMN attribute_values.value IS '屬性值內容，如：紅色、XL';
-COMMENT ON COLUMN attribute_values.slug IS 'URL 友好名稱，用於 SEO';
 COMMENT ON COLUMN attribute_values.description IS '屬性值詳細描述';
 COMMENT ON COLUMN attribute_values.sort_order IS '排序順序，數字越小越前面';
 COMMENT ON COLUMN attribute_values.created_at IS '屬性值建立時間';

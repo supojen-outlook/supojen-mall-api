@@ -199,12 +199,6 @@ CREATE TRIGGER trg_categories_after_insert_delete
 --       因此 INSERT 時只需提供必要欄位即可
 -- =============================================================================
 
-/*
--- 根類別：工藝品及其子類別
--- 注意：created_at 使用 DEFAULT NOW()，可省略不寫
---      updated_at 由觸發器自動維護
---      level、path_cache、path_text、is_leaf 均由觸發器自動計算
-*/
 INSERT INTO categories (id, name, parent_id, sort_order, status, slug) VALUES
     (1000000, '工藝品', NULL, 1000000, 'active', 'crafts'),
     (1001000, '陶瓷工藝品', 1000000, 1001000, 'active', 'ceramic_crafts'),
@@ -269,4 +263,3 @@ COMMENT ON COLUMN categories.sort_order IS '同層級間的排序順序，數字
 COMMENT ON COLUMN categories.status IS '狀態：active啟用，inactive停用';
 COMMENT ON COLUMN categories.image_url IS '類別代表圖片網址';
 COMMENT ON COLUMN categories.created_at IS '類別建立時間，預設為當前時間';
-COMMENT ON COLUMN categories.updated_at IS '類別最後更新時間，由觸發器自動維護';
